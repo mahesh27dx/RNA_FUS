@@ -15,9 +15,9 @@ production_dt=0.01 # Time step for production run in picoseconds
 box_length=50
 
 # rigid_body1_length = 284
-stat_file = 'input_stats/stats_module.dat'
+stat_file = 'input_files/stats_module.dat'
 # filein_ck1d = 'input_stats/CA_ck1delta.pdb'
-filein_FUS = 'input_stats/calpha_FUS.pdb'
+filein_FUS = 'input_files/calpha_FUS.pdb'
 
 # ############################
 # ### ONE RIGID BODY #################
