@@ -12,7 +12,7 @@ import hoomd_util as hu
 #        mass -> amu
 #        energy -> kJ/mol
 # ### MACROs
-production_dt=0.01 # Time step for production run in picoseconds
+# production_dt=0.01 # Time step for production run in picoseconds
 box_length=50
 
 stat_file = 'input_files/stats_module.dat'
@@ -45,8 +45,8 @@ if __name__=='__main__':
     FUS_cof_pos_rigid2 = np.array([[np.sum(FUS_pos_arr[421:453,0] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,1] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,2] * FUS_mass[421:453])/np.sum(FUS_mass[421:453])]])
-    FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)/10
-    FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)/10
+    FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)/6.
+    FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)/6.
     FUS_cof_pos_rigid = np.append(FUS_cof_pos_rigid1, FUS_cof_pos_rigid2, axis=0)
 
     # Rigid body I moment of inertia
