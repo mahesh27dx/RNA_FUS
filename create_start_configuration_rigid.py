@@ -165,10 +165,10 @@ if __name__=='__main__':
     typeid[336:]=FUS_id[455:]
     print(typeid,typeid.shape)
     s.particles.typeid=typeid
-    # s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
-    # s.bonds.types = ['AA_bond']
-    # s.bonds.typeid = [0] * (nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3)
-    # s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
+    s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
+    s.bonds.types = ['AA_bond']
+    s.bonds.typeid = [0] * (nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3)
+    s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
     
     s.configuration.dimensions = 3
     s.configuration.box = [box_length,box_length,box_length,0,0,0]
