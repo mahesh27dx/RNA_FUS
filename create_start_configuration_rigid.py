@@ -58,55 +58,61 @@ if __name__=='__main__':
     I_rigid2 = hu.protein_moment_inertia(FUS_rel_pos_rigid2, FUS_mass[421:453])
     I_diag_rigid2, E_vec_rigid2 = np.linalg.eig(I_rigid2)
     I_diag_rigid2 =I_diag_rigid2.reshape(-1,3)
+    
     # Initialize bond
     nbonds_FUS_poly1 = 283 
     bond_pairs_poly1 = np.zeros((nbonds_FUS_poly1, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly1):
         bond_pairs_poly1[i,:] = np.array([i+2, i+3])
     # print(bond_pairs_poly1)
+    
     nbonds_FUS_poly2 = 49
     bond_pairs_poly2 = np.zeros((nbonds_FUS_poly2, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly2):
         bond_pairs_poly2[i,:] = np.array([nbonds_FUS_poly1 + i + 3, nbonds_FUS_poly1 + i + 4])
     print("################")
     # print(bond_pairs_poly2)
+    
     nbonds_FUS_poly3 = 70
     bond_pairs_poly3 = np.zeros((nbonds_FUS_poly3, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly3):
         bond_pairs_poly3[i,:] = np.array([nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 4, nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 5])
     print(bond_pairs_poly3)
     
+
     # Now we can build HOOMD data structure for one single frame
     number_of_rigid_particles = 121
 
     s=gsd.hoomd.Snapshot()
+    
+    ## Types of the rigid bodies and the amino acids
     s.particles.types = ['R'] + ['Z'] + aa_type    # 21 types
-    # print(len(s.particles.types))
+    
+    ## TYPE ID's of the polymer chains
     FUS_id_poly1 = FUS_id[:284]
     FUS_id_poly2 = FUS_id[371:421]
     FUS_id_poly3 = FUS_id[455:]
-    # print(len(aa_type) + len(FUS_id_poly1) + len(FUS_id_poly2) + len(FUS_id_poly3))
     type_id = np.empty(0, dtype=float)
     type_id = np.append([len(aa_type)] + [len(aa_type)],  FUS_id_poly1 + FUS_id_poly2 + FUS_id_poly3)
-    # print(f"type_id::{type_id.shape}")
-    # s.particles.typeid = [len(aa_type)] + [len(aa_type)] +  FUS_id_poly1 + FUS_id_poly2 + FUS_id_poly3
     s.particles.typeid = type_id
-    # print(f"s.particles.typeid::{s.particles.typeid.shape}")
-    #exit()
-    FUS_pos_arr_poly = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_pos_arr[371:421].reshape(-1,3), FUS_pos_arr[455:].reshape(-1,3)), axis=0) 
-    FUS_pos_arr_poly_re = FUS_pos_arr_poly
-    
-    position = np.empty((0, 3), dtype=float)
-    position = np.append([FUS_cof_pos_rigid], FUS_pos_arr_poly_re)
-    # print(f"position shape:::{position.shape}")
+   
+    ## Postions of the residues in the system
+    # FUS_pos_arr_poly = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_pos_arr[371:421].reshape(-1,3), FUS_pos_arr[455:].reshape(-1,3)), axis=0) 
+    # FUS_pos_arr_poly_re = FUS_pos_arr_poly
+    # position = np.empty((0, 3), dtype=float)
+    position = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_cof_pos_rigid1, 
+                               FUS_pos_arr[371:421].reshape(-1,3), FUS_cof_pos_rigid2, 
+                               FUS_pos_arr[455:].reshape(-1,3)), axis=0)
+    # position = np.append([FUS_cof_pos_rigid], FUS_pos_arr_poly_re)
     s.particles.position = np.append( FUS_cof_pos_rigid, FUS_pos_arr_poly_re,axis=0)
     
-    s.particles.N = len(s.particles.position)  # (FUS_length-86)
+    ## Total number of particles in the system
+    s.particles.N = len(s.particles.position) 
 
+    ## Total mass of the residues in the system
     mass = np.empty(0, dtype=float)
     mass = np.append(mass, [np.sum(FUS_mass[284:371]) , np.sum(FUS_mass[421:454])] + FUS_mass[:284] + FUS_mass[371:421] + FUS_mass[455:])
     s.particles.mass = mass
-    # s.particles.mass = [np.sum(FUS_mass[284:371]) , np.sum(FUS_mass[421:454])] + FUS_mass[:284] + FUS_id[371:421] + FUS_id[453:]
 
     charge = np.empty(0, dtype=float)
     charge = np.append(charge, [np.sum(FUS_charge[284:371]), np.sum(FUS_charge[421:454])] + FUS_charge[:284] + FUS_charge[371:421] + FUS_charge[455:])
