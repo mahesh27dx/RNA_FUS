@@ -45,8 +45,10 @@ if __name__=='__main__':
     FUS_cof_pos_rigid2 = np.array([[np.sum(FUS_pos_arr[421:453,0] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,1] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,2] * FUS_mass[421:453])/np.sum(FUS_mass[421:453])]])
-    FUS_rel_pos_rigid1 = FUS_pos_arr[284:371] - FUS_cof_pos_rigid1
-    FUS_rel_pos_rigid2 = FUS_pos_arr[421:453] - FUS_cof_pos_rigid2
+    # FUS_rel_pos_rigid1 = FUS_pos_arr[284:371] - FUS_cof_pos_rigid1
+    # FUS_rel_pos_rigid2 = FUS_pos_arr[421:453] - FUS_cof_pos_rigid2
+    FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)/10
+    FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)/10
     FUS_cof_pos_rigid = np.append(FUS_cof_pos_rigid1, FUS_cof_pos_rigid2, axis=0)
 
     # Rigid body I moment of inertia
@@ -155,15 +157,15 @@ if __name__=='__main__':
     s.bonds.types = ['1typebon']
     typeid = np.arange(0, len(position))
     FUS_id = np.array(FUS_id)
-    print(typeid.shape, FUS_id.shape)
-    print(np.sort(FUS_id))
-    print(len(typeid))
+    # print(typeid.shape, FUS_id.shape)
+    # print(np.sort(FUS_id))
+    # print(len(typeid))
     typeid[:284]=FUS_id[:284]
     typeid[284]=20
     typeid[285:285+50] = FUS_id[371:421]
     typeid[335]=21
     typeid[336:]=FUS_id[455:]
-    print(typeid,typeid.shape)
+    # print(typeid,typeid.shape)
     s.particles.typeid=typeid
     s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
     s.bonds.types = ['AA_bond']
