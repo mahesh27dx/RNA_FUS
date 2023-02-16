@@ -99,7 +99,7 @@ if __name__=='__main__':
     s.particles.position = position
     
     ## Total number of particles in the system
-    s.particles.N = len(s.particles.position) 
+    s.particles.N = len(position) 
     print(s.particles.N)
     ## Total mass of the residues in the system
     mass=np.concatenate((FUS_mass[:284],np.sum(FUS_mass[284:371]), 
@@ -116,7 +116,7 @@ if __name__=='__main__':
     s.particles.charge = charge
 
     ## Moment of inertia of the two rigid bodies
-    moment_inertia_rigid1 = np.zeros((len(FUS_pos_arr[:284]), 3), dtype=float)
+    # moment_inertia_rigid1 = np.zeros((len(FUS_pos_arr[:284]), 3), dtype=float)
     moment_inertia = np.concatenate((np.zeros((len(FUS_charge[:284]), 3), dtype=float), 
                                      I_diag_rigid1, np.zeros((len(FUS_charge[371:421]), 3), dtype=float),
                                      I_diag_rigid2, np.zeros((len(FUS_charge[455:]), 3), dtype=float)), axis=0)
@@ -203,8 +203,8 @@ if __name__=='__main__':
   #  print(rigid.create_bodies(False))
     rigid.create_bodies()
 
-    system.bonds.add('AA_bond', 284, 441)
-    system.bonds.add('AA_bond', 285, 526)
+    #system.bonds.add('AA_bond', 284, 441)
+   # system.bonds.add('AA_bond', 285, 526)
 
     hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_p, truncate=True)
     hoomd.run_upto(1, limit_hours=24)
