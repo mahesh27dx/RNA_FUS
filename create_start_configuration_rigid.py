@@ -37,7 +37,6 @@ if __name__=='__main__':
     FUS_id, FUS_mass, FUS_charge, FUS_sigma, FUS_pos = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
     FUS_pos_arr = np.array(FUS_pos)/10.
     FUS_length = len(FUS_id)
-    # print(f"the length of FUS::{FUS_length}")
     FUS_tot_mass = np.sum(FUS_mass)
     FUS_cof_pos_rigid1 = np.array([[np.sum(FUS_pos_arr[284:371,0] * FUS_mass[284:371])/np.sum(FUS_mass[284:371]),
                    np.sum(FUS_pos_arr[284:371,1] * FUS_mass[284:371])/np.sum(FUS_mass[284:371]),
@@ -54,16 +53,11 @@ if __name__=='__main__':
     I_rigid1 = hu.protein_moment_inertia(FUS_rel_pos_rigid1, FUS_mass[284:371])
     I_diag_rigid1, E_vec_rigid1 = np.linalg.eig(I_rigid1)
     I_diag_rigid1=I_diag_rigid1.reshape(-1,3)
-    print(I_diag_rigid1)
-    # FUS_diag_pos_rigid1 = np.dot( E_vec_rigid1.T, FUS_rel_pos.T).T
 
     # Rigid body II moment of inertia
     I_rigid2 = hu.protein_moment_inertia(FUS_rel_pos_rigid2, FUS_mass[421:453])
     I_diag_rigid2, E_vec_rigid2 = np.linalg.eig(I_rigid2)
     I_diag_rigid2 =I_diag_rigid2.reshape(-1,3)
-    # FUS_diag_pos_rigid2 = np.dot( E_vec_rigid2.T, FUS_rel_pos.T).T
-    #I_check = hu.protein_moment_inertia(FUS_diag_pos, FUS_mass)  #check
-
     # Initialize bond
     nbonds_FUS_poly1 = 283 
     bond_pairs_poly1 = np.zeros((nbonds_FUS_poly1, 2),dtype=int)
