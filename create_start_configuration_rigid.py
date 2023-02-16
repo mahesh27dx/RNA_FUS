@@ -15,8 +15,8 @@ import hoomd_util as hu
 production_dt=0.01 # Time step for production run in picoseconds
 box_length=50
 
-stat_file = 'input_stats/stats_module.dat'
-filein_FUS = 'input_stats/calpha_FUS.pdb'
+stat_file = 'input_files/stats_module.dat'
+filein_FUS = 'input_files/calpha_FUS.pdb'
 
 if __name__=='__main__':
     # Input parameters for all the amino acids
