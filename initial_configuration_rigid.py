@@ -38,6 +38,7 @@ if __name__=='__main__':
     FUS_pos_arr = np.array(FUS_pos)/10.
     FUS_length = len(FUS_id)
     FUS_tot_mass = np.sum(FUS_mass)
+
     FUS_cof_pos_rigid1 = np.array([[np.sum(FUS_pos_arr[284:371,0] * FUS_mass[284:371])/np.sum(FUS_mass[284:371]),
                    np.sum(FUS_pos_arr[284:371,1] * FUS_mass[284:371])/np.sum(FUS_mass[284:371]),
                    np.sum(FUS_pos_arr[284:371,2] * FUS_mass[284:371])/np.sum(FUS_mass[284:371])]])
@@ -45,8 +46,8 @@ if __name__=='__main__':
     FUS_cof_pos_rigid2 = np.array([[np.sum(FUS_pos_arr[421:453,0] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,1] * FUS_mass[421:453])/np.sum(FUS_mass[421:453]),
                    np.sum(FUS_pos_arr[421:453,2] * FUS_mass[421:453])/np.sum(FUS_mass[421:453])]])
-    FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)/6.
-    FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)/6.
+    FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)
+    FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)
     FUS_cof_pos_rigid = np.append(FUS_cof_pos_rigid1, FUS_cof_pos_rigid2, axis=0)
 
     # Rigid body I moment of inertia
@@ -63,21 +64,21 @@ if __name__=='__main__':
     nbonds_FUS_poly1 = 283 
     bond_pairs_poly1 = np.zeros((nbonds_FUS_poly1, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly1):
-        bond_pairs_poly1[i,:] = np.array([i+2, i+3])
-    # print(bond_pairs_poly1)
+        bond_pairs_poly1[i,:] = np.array([i, i+1])
+    print(bond_pairs_poly1)
     
     nbonds_FUS_poly2 = 49
     bond_pairs_poly2 = np.zeros((nbonds_FUS_poly2, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly2):
-        bond_pairs_poly2[i,:] = np.array([nbonds_FUS_poly1 + i + 3, nbonds_FUS_poly1 + i + 4])
+        bond_pairs_poly2[i,:] = np.array([nbonds_FUS_poly1 + i + 2, nbonds_FUS_poly1 + i + 3])
     print("################")
-    # print(bond_pairs_poly2)
+    print(bond_pairs_poly2)
     
     nbonds_FUS_poly3 = 70
     bond_pairs_poly3 = np.zeros((nbonds_FUS_poly3, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly3):
         bond_pairs_poly3[i,:] = np.array([nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 4, nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 5])
-    #print(bond_pairs_poly3)
+    # print(bond_pairs_poly3)
     
     # Now we can build HOOMD data structure for one single frame
     #number_of_rigid_particles = 121
@@ -87,51 +88,46 @@ if __name__=='__main__':
     ## Types of the rigid bodies and the amino acids
     s.particles.types = aa_type  +['R'] + ['Z']    # 21 types
     
-    # exit()
-    ## Postions of the residues in the system
-    # FUS_pos_arr_poly = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_pos_arr[371:421].reshape(-1,3), FUS_pos_arr[455:].reshape(-1,3)), axis=0) 
-    # FUS_pos_arr_poly_re = FUS_pos_arr_poly
-    # position = np.empty((0, 3), dtype=float)
     position = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_cof_pos_rigid1, 
                                FUS_pos_arr[371:421].reshape(-1,3), FUS_cof_pos_rigid2, 
-                               FUS_pos_arr[455:].reshape(-1,3)), axis=0)
+                               FUS_pos_arr[453:].reshape(-1,3)), axis=0)
     # position = np.append([FUS_cof_pos_rigid], FUS_pos_arr_poly_re)
     s.particles.position = position
     
     ## Total number of particles in the system
     s.particles.N = len(position) 
     print(s.particles.N)
+
     ## Total mass of the residues in the system
     mass=np.concatenate((FUS_mass[:284],np.sum(FUS_mass[284:371]), 
-                         FUS_mass[371:421], np.sum(FUS_mass[421:454]),
-                         FUS_mass[455:]),axis=None)
+                         FUS_mass[371:421], np.sum(FUS_mass[421:453]),
+                         FUS_mass[453:]),axis=None)
     #print("mass",mass.shape)
     s.particles.mass = mass
 
     ## Total charge on the residues in the system
     charge = np.empty(0, dtype=float)
     charge = np.concatenate((FUS_charge[:284], np.sum(FUS_charge[284:371]), 
-                             FUS_charge[371:421], np.sum(FUS_charge[421:454]), 
-                             FUS_charge[455:]),axis=None)
+                             FUS_charge[371:421], np.sum(FUS_charge[421:453]), 
+                             FUS_charge[453:]),axis=None)
     s.particles.charge = charge
 
     ## Moment of inertia of the two rigid bodies
-    # moment_inertia_rigid1 = np.zeros((len(FUS_pos_arr[:284]), 3), dtype=float)
     moment_inertia = np.concatenate((np.zeros((len(FUS_charge[:284]), 3), dtype=float), 
                                      I_diag_rigid1, np.zeros((len(FUS_charge[371:421]), 3), dtype=float),
-                                     I_diag_rigid2, np.zeros((len(FUS_charge[455:]), 3), dtype=float)), axis=0)
+                                     I_diag_rigid2, np.zeros((len(FUS_charge[453:]), 3), dtype=float)), axis=0)
     s.particles.moment_inertia = moment_inertia
 
     ## Orientation of each particle (size:: (N, 4))
     orientation = np.concatenate((np.zeros((len(FUS_charge[:284]), 4), dtype=float), 
                                   np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[371:421]), 4), dtype=float), 
-                                  np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[455:]), 4), dtype=float)), axis=0)
+                                  np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[453:]), 4), dtype=float)), axis=0)
     s.particles.orientation = orientation
 
     ## Stores the composite body associated with each particle. Value [-1] indicates no body.
     body = np.empty(0, dtype=int)
     body = np.append(body, [-1] * len(FUS_charge[:284]) + [284] + [-1] * len(FUS_charge[371:421]) 
-                                                        + [334] + [-1] * len(FUS_charge[455:]))
+                                                        + [334] + [-1] * len(FUS_charge[453:]))
     s.particles.body = body
 
     ## TYPE ID's of the polymer chains
@@ -152,7 +148,7 @@ if __name__=='__main__':
         bonds = np.append(bonds, [[i, i+1]], axis=0)
     s.bonds.group = bonds
     s.bonds.N = len(bonds)
-    s.bonds.types = ['1typebon']
+    s.bonds.types = ['1typebon','rigid1', 'rigid2']
     typeid = np.arange(0, len(position))
     FUS_id = np.array(FUS_id)
     # print(typeid.shape, FUS_id.shape)
@@ -162,13 +158,14 @@ if __name__=='__main__':
     typeid[284]=20
     typeid[285:285+50] = FUS_id[371:421]
     typeid[335]=21
-    typeid[336:]=FUS_id[455:]
+    typeid[336:]=FUS_id[453:]
+    print(typeid.shape,position.shape,moment_inertia.shape,orientation.shape)
     # print(typeid,typeid.shape)
     s.particles.typeid=typeid
-    s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
-    s.bonds.types = ['AA_bond']
-    s.bonds.typeid = [0] * (nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3)
-    s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
+    # s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
+    # s.bonds.types = ['AA_bond']
+    # s.bonds.typeid = [0] * (nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3)
+    # s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
     
     s.configuration.dimensions = 3
     s.configuration.box = [box_length,box_length,box_length,0,0,0]
@@ -179,7 +176,7 @@ if __name__=='__main__':
     # print(len(rel_charge1),len(FUS_rel_pos_rigid1[:]))
     # print(len(rel_charge2),len(FUS_rel_pos_rigid2[:]))
     # exit()
-
+    print(len(FUS_rel_pos_rigid1),len(FUS_rel_pos_rigid2))
     with gsd.hoomd.open(name='FUS_start.gsd', mode='wb') as f:
         f.append(s)
         f.close()
@@ -202,9 +199,12 @@ if __name__=='__main__':
                     positions=FUS_rel_pos_rigid2[:])
   #  print(rigid.create_bodies(False))
     rigid.create_bodies()
-
-    #system.bonds.add('AA_bond', 284, 441)
-   # system.bonds.add('AA_bond', 285, 526)
+    for i in range(len(FUS_rel_pos_rigid1)):
+        print(284, 528+i-len(FUS_rel_pos_rigid1)-len(FUS_rel_pos_rigid2))
+        system.bonds.add('rigid1', 284, 528+i-len(FUS_rel_pos_rigid1)-len(FUS_rel_pos_rigid2))
+    for i in range(len(FUS_rel_pos_rigid2)-1):
+        system.bonds.add('rigid2', 335, 528+i-len(FUS_rel_pos_rigid2))
+    #system.bonds.add('AA_bond', 285, 286)
 
     hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_p, truncate=True)
     hoomd.run_upto(1, limit_hours=24)
