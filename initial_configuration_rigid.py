@@ -4,6 +4,7 @@ import sys,os
 import numpy as np
 import gsd, gsd.hoomd
 import hoomd, hoomd.md
+from hoomd import azplugins
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import hoomd_util as hu
@@ -59,47 +60,47 @@ if __name__=='__main__':
     I_rigid2 = hu.protein_moment_inertia(FUS_rel_pos_rigid2, FUS_mass[421:453])
     I_diag_rigid2, E_vec_rigid2 = np.linalg.eig(I_rigid2)
     I_diag_rigid2 = I_diag_rigid2.reshape(-1,3)
-    
+
     # Initialize bond
-    nbonds_FUS_poly1 = 283 
+    nbonds_FUS_poly1 = 283
     bond_pairs_poly1 = np.zeros((nbonds_FUS_poly1, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly1):
         bond_pairs_poly1[i,:] = np.array([i, i+1])
-    print(bond_pairs_poly1)
-    
+    # print(bond_pairs_poly1)
+
     nbonds_FUS_poly2 = 49
     bond_pairs_poly2 = np.zeros((nbonds_FUS_poly2, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly2):
         bond_pairs_poly2[i,:] = np.array([nbonds_FUS_poly1 + i + 2, nbonds_FUS_poly1 + i + 3])
     print("################")
-    print(bond_pairs_poly2)
-    
+    # print(bond_pairs_poly2)
+
     nbonds_FUS_poly3 = 70
     bond_pairs_poly3 = np.zeros((nbonds_FUS_poly3, 2),dtype=int)
     for i in range(0, nbonds_FUS_poly3):
         bond_pairs_poly3[i,:] = np.array([nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 4, nbonds_FUS_poly1 + nbonds_FUS_poly2 + i + 5])
     # print(bond_pairs_poly3)
-    
+
     # Now we can build HOOMD data structure for one single frame
     #number_of_rigid_particles = 121
 
     s=gsd.hoomd.Snapshot()
-    
+
     ## Types of the rigid bodies and the amino acids
     s.particles.types = aa_type  +['R'] + ['Z']    # 21 types
-    
-    position = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_cof_pos_rigid1, 
-                               FUS_pos_arr[371:421].reshape(-1,3), FUS_cof_pos_rigid2, 
+
+    position = np.concatenate((FUS_pos_arr[:284].reshape(-1,3), FUS_cof_pos_rigid1,
+                               FUS_pos_arr[371:421].reshape(-1,3), FUS_cof_pos_rigid2,
                                FUS_pos_arr[453:].reshape(-1,3)), axis=0)
     # position = np.append([FUS_cof_pos_rigid], FUS_pos_arr_poly_re)
     s.particles.position = position
-    
+
     ## Total number of particles in the system
-    s.particles.N = len(position) 
+    s.particles.N = len(position)
     print(s.particles.N)
 
     ## Total mass of the residues in the system
-    mass=np.concatenate((FUS_mass[:284],np.sum(FUS_mass[284:371]), 
+    mass=np.concatenate((FUS_mass[:284],np.sum(FUS_mass[284:371]),
                          FUS_mass[371:421], np.sum(FUS_mass[421:453]),
                          FUS_mass[453:]),axis=None)
     #print("mass",mass.shape)
@@ -107,26 +108,26 @@ if __name__=='__main__':
 
     ## Total charge on the residues in the system
     charge = np.empty(0, dtype=float)
-    charge = np.concatenate((FUS_charge[:284], np.sum(FUS_charge[284:371]), 
-                             FUS_charge[371:421], np.sum(FUS_charge[421:453]), 
+    charge = np.concatenate((FUS_charge[:284], np.sum(FUS_charge[284:371]),
+                             FUS_charge[371:421], np.sum(FUS_charge[421:453]),
                              FUS_charge[453:]),axis=None)
     s.particles.charge = charge
 
     ## Moment of inertia of the two rigid bodies
-    moment_inertia = np.concatenate((np.zeros((len(FUS_charge[:284]), 3), dtype=float), 
+    moment_inertia = np.concatenate((np.zeros((len(FUS_charge[:284]), 3), dtype=float),
                                      I_diag_rigid1, np.zeros((len(FUS_charge[371:421]), 3), dtype=float),
                                      I_diag_rigid2, np.zeros((len(FUS_charge[453:]), 3), dtype=float)), axis=0)
     s.particles.moment_inertia = moment_inertia
 
     ## Orientation of each particle (size:: (N, 4))
-    orientation = np.concatenate((np.zeros((len(FUS_charge[:284]), 4), dtype=float), 
-                                  np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[371:421]), 4), dtype=float), 
+    orientation = np.concatenate((np.zeros((len(FUS_charge[:284]), 4), dtype=float),
+                                  np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[371:421]), 4), dtype=float),
                                   np.array([[0,1,1,1]]), np.zeros((len(FUS_charge[453:]), 4), dtype=float)), axis=0)
     s.particles.orientation = orientation
 
     ## Stores the composite body associated with each particle. Value [-1] indicates no body.
     body = np.empty(0, dtype=int)
-    body = np.append(body, [-1] * len(FUS_charge[:284]) + [284] + [-1] * len(FUS_charge[371:421]) 
+    body = np.append(body, [-1] * len(FUS_charge[:284]) + [284] + [-1] * len(FUS_charge[371:421])
                                                         + [334] + [-1] * len(FUS_charge[453:]))
     s.particles.body = body
 
@@ -159,30 +160,30 @@ if __name__=='__main__':
     typeid[285:285+50] = FUS_id[371:421]
     typeid[335]=21
     typeid[336:]=FUS_id[453:]
-    print(typeid.shape,position.shape,moment_inertia.shape,orientation.shape)
+    # print(typeid.shape,position.shape,moment_inertia.shape,orientation.shape)
     # print(typeid,typeid.shape)
     s.particles.typeid=typeid
     # s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
     # s.bonds.types = ['AA_bond']
     # s.bonds.typeid = [0] * (nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3)
     # s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
-    
+
     s.configuration.dimensions = 3
     s.configuration.box = [box_length,box_length,box_length,0,0,0]
     s.configuration.step = 0
-    
+
     rel_charge1 = [aa_type[FUS_id[i]] for i in range(284, 371)]
     rel_charge2 = [aa_type[FUS_id[i]] for i in range(421, 453)]
     # print(len(rel_charge1),len(FUS_rel_pos_rigid1[:]))
     # print(len(rel_charge2),len(FUS_rel_pos_rigid2[:]))
     # exit()
-    print(len(FUS_rel_pos_rigid1),len(FUS_rel_pos_rigid2))
+    # print(len(FUS_rel_pos_rigid1),len(FUS_rel_pos_rigid2))
     with gsd.hoomd.open(name='FUS_start.gsd', mode='wb') as f:
         f.append(s)
         f.close()
 
-    # exit()    
-    
+    # exit()
+
     # Defining rigid body
     hoomd.context.initialize()
     system = hoomd.init.read_gsd('FUS_start.gsd')
@@ -191,20 +192,66 @@ if __name__=='__main__':
     snapshot = system.take_snapshot()
 
     rigid = hoomd.md.constrain.rigid()
-    rigid.set_param('R', 
+    rigid.set_param('R',
                     types= rel_charge1,
                     positions=FUS_rel_pos_rigid1[:])
-    rigid.set_param('Z', 
+    rigid.set_param('Z',
                     types=rel_charge2,
                     positions=FUS_rel_pos_rigid2[:])
   #  print(rigid.create_bodies(False))
     rigid.create_bodies()
     for i in range(len(FUS_rel_pos_rigid1)):
-        print(284, 528+i-len(FUS_rel_pos_rigid1)-len(FUS_rel_pos_rigid2))
+        # print(284, 528+i-len(FUS_rel_pos_rigid1)-len(FUS_rel_pos_rigid2))
         system.bonds.add('rigid1', 284, 528+i-len(FUS_rel_pos_rigid1)-len(FUS_rel_pos_rigid2))
     for i in range(len(FUS_rel_pos_rigid2)-1):
         system.bonds.add('rigid2', 335, 528+i-len(FUS_rel_pos_rigid2))
     #system.bonds.add('AA_bond', 285, 286)
 
-    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_p, truncate=True)
-    hoomd.run_upto(1, limit_hours=24)
+    # Replicate the single chain here. Remember total number of chains = nx*ny*nz
+    # system.replicate(nx=nx, ny=ny, nz=nz)
+
+    # Harmonic potential between bonded particles
+    bond_length = 0.38
+    harmonic = hoomd.md.bond.harmonic()
+    harmonic.bond_coeff.set('AA_bond', k=8368, r0=bond_length)
+
+    #Neighborlist and exclusions
+    nl = hoomd.md.nlist.cell()
+    nl.reset_exclusions(exclusions=['1-2', 'body'])
+
+    # Pairwise interactions
+    nb = azplugins.pair.ashbaugh(r_cut=0, nlist=nl)
+    for i in aa_type:
+        for j in aa_type:
+            nb.pair_coeff.set(i, j, lam=(aa_param_dict[i][3] + aa_param_dict[j][3])/2., epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
+
+    # Electrostatics
+    yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
+    for i, atom1 in enumerate(aa_type):
+        for j, atom2 in enumerate(aa_type):
+            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
+
+    # create a group containing all particles in group A and those with tags 0-405
+    # groupA = hoomd.group.type('A')
+    group0_404 = hoomd.group.tags(0,404)
+    # group_combined = hoomd.group.union(name="combined", a=groupA, b=group0_404)
+    print(f"The length of group A:::{len(group0_404)}")
+    print(f"The position::{group0_404[0].position}")
+    # create a group containing all particles that are not in group A
+    all = hoomd.group.all()
+    group_notA = hoomd.group.difference(name="notA", a=all, b=group0_404)
+
+    # exit()
+    # Set up integrator
+    resize_dt=0.01 # Time step in picoseconds for box resizing
+    resize_T=300 # Temperature for resizing run in Kelvin
+    production_dt = 10000
+    temp = resize_T * 8.3144598/1000.
+    hoomd.md.integrate.mode_standard(dt=production_dt)
+
+    integrator = hoomd.md.integrate.langevin(group=group0_404, kT=temp, seed=399991)
+    # for cnt, i in enumerate(aa_type):
+        # integrator.set_gamma(i, gamma=aa_mass[cnt]/1000.0)
+
+    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all, truncate=True)
+    hoomd.run_upto(1000, limit_hours=24)
