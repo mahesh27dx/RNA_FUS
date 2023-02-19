@@ -14,9 +14,10 @@ import hoomd_util as hu
 #        energy -> kJ/mol
 # ### MACROs
 # production_dt=0.01 # Time step for production run in picoseconds
-Lx = 330
-Ly = 330
-Lz = 3300
+# Lx = 330
+# Ly = 330
+# Lz = 3300
+box_length = 200
 
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
@@ -51,8 +52,12 @@ if __name__=='__main__':
                    np.sum(FUS_pos_arr[421:453,2] * FUS_mass[421:453])/np.sum(FUS_mass[421:453])]])
     FUS_rel_pos_rigid1 = (FUS_pos_arr[284:371] - FUS_cof_pos_rigid1)
     FUS_rel_pos_rigid2 = (FUS_pos_arr[421:453] - FUS_cof_pos_rigid2)
+    print(FUS_rel_pos_rigid1.shape)
+    print(FUS_rel_pos_rigid2.shape)
+    
     FUS_cof_pos_rigid = np.append(FUS_cof_pos_rigid1, FUS_cof_pos_rigid2, axis=0)
-
+    print(FUS_cof_pos_rigid.shape)
+    
     # Rigid body I moment of inertia
     I_rigid1 = hu.protein_moment_inertia(FUS_rel_pos_rigid1, FUS_mass[284:371])
     I_diag_rigid1, E_vec_rigid1 = np.linalg.eig(I_rigid1)
@@ -95,6 +100,8 @@ if __name__=='__main__':
                                FUS_pos_arr[371:421].reshape(-1,3), FUS_cof_pos_rigid2,
                                FUS_pos_arr[453:].reshape(-1,3)), axis=0)
     # position = np.append([FUS_cof_pos_rigid], FUS_pos_arr_poly_re)
+    print(position.shape)
+    
     s.particles.position = position
 
     ## Total number of particles in the system
@@ -136,7 +143,7 @@ if __name__=='__main__':
     ## TYPE ID's of the polymer chains
     # FUS_id_poly1 = FUS_id[:284]
     # FUS_id_poly2 = FUS_id[371:421]
-    # FUS_id_poly3 = FUS_id[455:]
+    # FUS_id_poly3 = FUS_id[453:]
     # print(len(FUS_id))
     # type_id = np.empty(0, dtype=int)
     # type_id = np.append(type_id, FUS_id_poly1 + FUS_id_poly2+FUS_id_poly3 + [20] + [21])
@@ -162,8 +169,8 @@ if __name__=='__main__':
     typeid[285:285+50] = FUS_id[371:421]
     typeid[335]=21
     typeid[336:]=FUS_id[453:]
-    # print(typeid.shape,position.shape,moment_inertia.shape,orientation.shape)
-    # print(typeid,typeid.shape)
+    print(typeid.shape,position.shape,moment_inertia.shape,orientation.shape)
+    print(typeid.shape)
     s.particles.typeid=typeid
     # s.bonds.N = nbonds_FUS_poly1 + nbonds_FUS_poly2 + nbonds_FUS_poly3
     # s.bonds.types = ['AA_bond']
@@ -171,25 +178,19 @@ if __name__=='__main__':
     # s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
 
     s.configuration.dimensions = 3
-    s.configuration.box = [Lx,Ly,Lz,0,0,0]
+    s.configuration.box = [box_length,box_length,box_length,0,0,0]
     s.configuration.step = 0
-
+    
     rel_charge1 = [aa_type[FUS_id[i]] for i in range(284, 371)]
     rel_charge2 = [aa_type[FUS_id[i]] for i in range(421, 453)]
-    # print(len(rel_charge1),len(FUS_rel_pos_rigid1[:]))
-    # print(len(rel_charge2),len(FUS_rel_pos_rigid2[:]))
-    # exit()
-    # print(len(FUS_rel_pos_rigid1),len(FUS_rel_pos_rigid2))
+   
     with gsd.hoomd.open(name='FUS_start.gsd', mode='wb') as f:
         f.append(s)
         f.close()
 
-    # exit()
-
     # Defining rigid body
     hoomd.context.initialize("--mode=cpu")
     system = hoomd.init.read_gsd('FUS_start.gsd')
-    #all_p = hoomd.group.all()
 
     snapshot = system.take_snapshot()
 
@@ -253,7 +254,7 @@ if __name__=='__main__':
     # Set up integrator
     resize_dt=0.01 # Time step in picoseconds for box resizing
     resize_T=300 # Temperature for resizing run in Kelvin
-    production_dt = 10000
+    production_dt = 0.001
     temp = resize_T * 8.3144598/1000.
     hoomd.md.integrate.mode_standard(dt=production_dt)
     # exit()
