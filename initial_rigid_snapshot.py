@@ -43,6 +43,7 @@ if __name__=='__main__':
     prot_position_array = np.array(prot_position) # converts the position list into an array
     prot_length = len(prot_id)
     prot_total_mass = np.sum(prot_mass)
+    prot_mass_arr = np.array(prot_mass)
     # poly1 = :284 ## find a clever way to assign the index
     # Relative positions of the constituent particles of the two rigid bodies
     ### First rigid body relative position and moment of inertia
@@ -201,6 +202,61 @@ if __name__=='__main__':
 
     # Grouping of the particles
     all_group = hoomd.group.all()
+    center_group =hoomd.group.rigid_center()
+    non_rigid_group = hoomd.group.nonrigid()
+    moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
+
+    # Harmonic potential between bonded particles
+    bond_length = 0.38
+    harmonic = hoomd.md.bond.harmonic()
+    harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = 8360, r0 = bond_length)
+
+    # Neighbourslist and exclusions
+    nl = hoomd.md.nlist.cell()
+    nl.reset_exclusions(exclusions=['1-2', 'body'])
+
+    # Non-bonded Pairwise interactions
+    nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = nl)
+    for i in aa_type:
+        for j in aa_type:
+            nb.pair_coeff.set(i, j, lam = (aa_param_dict[i][3] + aa_param_dict[j][3])/2.,
+                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
+        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0., r_cut=0.)
+        nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+
+    # Electrostatics
+    yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
+    # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
+    for i, atom1 in enumerate(aa_type):
+        atom1 = aa_type[i]
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=1.73136, kappa=1.0, r_cut=18.5)
+        for j, atom2 in enumerate(aa_type):
+            atom2 = aa_type[j]
+            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=0)
+        yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+
+    # Set up integrator
+    resize_dt = 0.01 # Time step in picoseconds for box resizing
+    resize_T = 300 # Temperature for resizing run in Kelvin
+    production_dt = 0.01
+    temp = resize_T * 8.3144598/1000.
+    hoomd.md.integrate.mode_standard(dt=production_dt)
+
+    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=temp, seed=399991)
+    for i,name in enumerate(aa_type):
+        langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
+    langevin.set_gamma('R', gamma=0.0001)
+    langevin.set_gamma('Z', gamma=0.0001)
+    # langevin.set_gamma('R', gamma=prot_mass_arr[:]/1000.0)
+    # langevin.set_gamma('Z', gamma=prot_mass_arr[:]/1000.0)
 
     hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
-    hoomd.run(1)
+    hoomd.run(1000)
