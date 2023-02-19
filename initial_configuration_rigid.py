@@ -14,7 +14,9 @@ import hoomd_util as hu
 #        energy -> kJ/mol
 # ### MACROs
 # production_dt=0.01 # Time step for production run in picoseconds
-box_length = 1000
+Lx = 330
+Ly = 330
+Lz = 3300
 
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
@@ -169,7 +171,7 @@ if __name__=='__main__':
     # s.bonds.group = np.concatenate((bond_pairs_poly1, bond_pairs_poly2, bond_pairs_poly3), axis=0)
 
     s.configuration.dimensions = 3
-    s.configuration.box = [box_length,box_length,box_length,0,0,0]
+    s.configuration.box = [Lx,Ly,Lz,0,0,0]
     s.configuration.step = 0
 
     rel_charge1 = [aa_type[FUS_id[i]] for i in range(284, 371)]
@@ -226,7 +228,7 @@ if __name__=='__main__':
     nb = azplugins.pair.ashbaugh(r_cut=0, nlist=nl)
     for i in aa_type:
         for j in aa_type:
-            nb.pair_coeff.set(i, j, lam=(aa_param_dict[i][3] + aa_param_dict[j][3])/2., epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=3.0)
+            nb.pair_coeff.set(i, j, lam=(aa_param_dict[i][3] + aa_param_dict[j][3])/2., epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=18.0)
         nb.pair_coeff.set(i, 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
         nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
     nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
@@ -238,7 +240,7 @@ if __name__=='__main__':
     # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
     for i, atom1 in enumerate(aa_type):
         atom1 = aa_type[i]
-        yukawa.pair_coeff.set(atom1, 'R', epsilon=1.73136, kappa=1.0, r_cut=3.5)
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=1.73136, kappa=1.0, r_cut=18.5)
         for j, atom2 in enumerate(aa_type):
             atom2 = aa_type[j]
             yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
