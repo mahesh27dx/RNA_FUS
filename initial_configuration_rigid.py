@@ -14,7 +14,7 @@ import hoomd_util as hu
 #        energy -> kJ/mol
 # ### MACROs
 # production_dt=0.01 # Time step for production run in picoseconds
-box_length=50
+box_length = 1000
 
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
@@ -149,7 +149,7 @@ if __name__=='__main__':
         bonds = np.append(bonds, [[i, i+1]], axis=0)
     s.bonds.group = bonds
     s.bonds.N = len(bonds)
-    s.bonds.types = ['1typebon','rigid1', 'rigid2']
+    s.bonds.types = ['AA_bond','rigid1', 'rigid2']
     typeid = np.arange(0, len(position))
     FUS_id = np.array(FUS_id)
     # print(typeid.shape, FUS_id.shape)
@@ -185,9 +185,9 @@ if __name__=='__main__':
     # exit()
 
     # Defining rigid body
-    hoomd.context.initialize()
+    hoomd.context.initialize("--mode=cpu")
     system = hoomd.init.read_gsd('FUS_start.gsd')
-    all_p = hoomd.group.all()
+    #all_p = hoomd.group.all()
 
     snapshot = system.take_snapshot()
 
@@ -207,13 +207,16 @@ if __name__=='__main__':
         system.bonds.add('rigid2', 335, 528+i-len(FUS_rel_pos_rigid2))
     #system.bonds.add('AA_bond', 285, 286)
 
-    # Replicate the single chain here. Remember total number of chains = nx*ny*nz
-    # system.replicate(nx=nx, ny=ny, nz=nz)
+    all_group = hoomd.group.all()
+    # Group particles that belong to rigid bodies
+    center_group = hoomd.group.rigid_center()
+    non_rigid_group = hoomd.group.nonrigid()
+    moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
 
     # Harmonic potential between bonded particles
     bond_length = 0.38
     harmonic = hoomd.md.bond.harmonic()
-    harmonic.bond_coeff.set('AA_bond', k=8368, r0=bond_length)
+    harmonic.bond_coeff.set(['AA_bond', 'rigid1', 'rigid2'], k=8368, r0=bond_length)
 
     #Neighborlist and exclusions
     nl = hoomd.md.nlist.cell()
@@ -223,35 +226,42 @@ if __name__=='__main__':
     nb = azplugins.pair.ashbaugh(r_cut=0, nlist=nl)
     for i in aa_type:
         for j in aa_type:
-            nb.pair_coeff.set(i, j, lam=(aa_param_dict[i][3] + aa_param_dict[j][3])/2., epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
-
+            nb.pair_coeff.set(i, j, lam=(aa_param_dict[i][3] + aa_param_dict[j][3])/2., epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=3.0)
+        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
+        nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
     # Electrostatics
     yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
+    # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
     for i, atom1 in enumerate(aa_type):
+        atom1 = aa_type[i]
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=1.73136, kappa=1.0, r_cut=3.5)
         for j, atom2 in enumerate(aa_type):
+            atom2 = aa_type[j]
             yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=0)
+        yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=0)
 
-    # create a group containing all particles in group A and those with tags 0-405
-    # groupA = hoomd.group.type('A')
-    group0_404 = hoomd.group.tags(0,404)
-    # group_combined = hoomd.group.union(name="combined", a=groupA, b=group0_404)
-    print(f"The length of group A:::{len(group0_404)}")
-    print(f"The position::{group0_404[0].position}")
-    # create a group containing all particles that are not in group A
-    all = hoomd.group.all()
-    group_notA = hoomd.group.difference(name="notA", a=all, b=group0_404)
-
-    # exit()
     # Set up integrator
     resize_dt=0.01 # Time step in picoseconds for box resizing
     resize_T=300 # Temperature for resizing run in Kelvin
     production_dt = 10000
     temp = resize_T * 8.3144598/1000.
     hoomd.md.integrate.mode_standard(dt=production_dt)
+    # exit()
+    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=temp, seed=399991)
+    for i,name in enumerate(aa_type):
+        langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
+    langevin.set_gamma('R', gamma=0.0001)
+    langevin.set_gamma('Z', gamma=0.0001)
+    # langevin.set_gamma('R', gamma=FUS_mass_arr[:]/1000.0)
+    # langevin.set_gamma('Z', gamma=FUS_mass_arr[:]/1000.0)
 
-    integrator = hoomd.md.integrate.langevin(group=group0_404, kT=temp, seed=399991)
-    # for cnt, i in enumerate(aa_type):
-        # integrator.set_gamma(i, gamma=aa_mass[cnt]/1000.0)
-
-    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all, truncate=True)
-    hoomd.run_upto(1000, limit_hours=24)
+    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
+    hoomd.run(1)
