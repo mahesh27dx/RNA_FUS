@@ -167,7 +167,8 @@ if __name__=='__main__':
     snap.particles.typeid = type_id
 
     bond_length = 0.38
-    box_length = bond_length * prot_length + 10
+    # box_length = bond_length * prot_length + 10
+    box_length = 1400
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
@@ -263,6 +264,9 @@ if __name__=='__main__':
 
     # Set up integrator
     langevin = hoomd.md.integrate.langevin(group=moving_group, kT=temp, seed=399991)
+    resize_steps=1000
+    hoomd.update.box_resize(L=hoomd.variant.linear_interp([(0,system.box.Lx),
+                            (resize_steps-500,boxsize)]),scale_particles=True)
     for i,name in enumerate(aa_type):
         langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
     # langevin.set_gamma('R', gamma=1)
@@ -271,4 +275,4 @@ if __name__=='__main__':
     # langevin.set_gamma('Z', gamma=prot_mass_arr/1000.0)
 
     hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
-    hoomd.run(1000)
+    hoomd.run(100)
