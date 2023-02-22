@@ -6,9 +6,9 @@
 
 import sys,os
 import numpy as np
-import gsd, gsd.hoomd
+import gsd, gsd.hoomd, gsd.pygsd
 import hoomd, hoomd.md
-from hoomd import azplugins
+import azplugins
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import hoomd_util as hu
@@ -16,11 +16,69 @@ import hoomd_util as hu
 # UNITS: distance -> nm   (!!!positions and sigma in files are in agstrom!!!)
 #        mass -> amu
 #        energy -> kJ/mol
-# ### MACROs
-# production_dt=0.01 # Time step for production run in picoseconds
 
+# Input files
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
+
+# SYSTEM SIZE
+nx=5 # Replicate system in x direction
+ny=5 # Replicate system in y direction
+nz=4 # Replicate system in z direction --> Total system size would be nx*ny*nz
+# Please keep magnitudes of nx, ny and nz as close to each other
+# as possible to avoid large replicated system box sizes in a specific direction
+
+# ### SIMULATION PARAMETERS
+saveTrajectories = 1
+numberGSDframes = 1000 # the number of snapshots the sim writes into the .gsd file
+
+dt = 2.69e-3    # time step (in HOOMD units; equals dt = 1e-14)
+steps = int(5000)
+T_in_K = 300
+
+Lx_in_nm = 15                    # box size x-direction in nm (1D = 4,5A --> 15 nm = 33.333 D)
+Ly_in_nm = 15                    # box size y-direction in nm (1D = 4,5A --> 15 nm =  33.333 D)
+Lz_in_nm = 150                    # box size z-direction in nm (1D = 4,5A --> 75 nm =  166.667 D)
+
+# Cutoff radius of electrostatic interactions in nm (Coulombic term; HOOMD: Yukawa potential)
+rcut_YU_in_nm = 4.0
+# Cutoff radius of short range interactions in nm (Ashbaugh Hatch functional form)
+rcut_AH_in_nm = 2.0
+
+# SLAB DIMENSIONS
+boxsize=15.0 # The x and y dimensions of the slab configuration in nanometers
+slab_z_length = 280.0 # The z dimension of the slab configuration in nanometers
+
+# box_length = 900
+# box_length = Lx*Ly*Lz
+# HOOMD units
+# Absolute energy scale of the short-ranged interactions between all pairs of
+# amino acids (1 epsilon = 0.2 kcal/mol)
+epsilon = 1.0
+r0 = 0.38 / 0.45    # bond equilibrium position (see harmonic potential, r0=3.8A, 1D= 4.5 A)
+# spring constant (see harmonic potential, k=20J/m^2), high=> stiff: bond length constrained
+# to be almost exactly sigma.
+k = 2025.0
+D = 80.0    # dielectric constant of the solvent (see Yukawa potential)
+kappa = 1/2.222 # inverse (due to def of yukawa) of Debye screening length (~1nm)
+
+# Convert temperature and box size in HOOMD units:
+k_B = 1.38064852e-23    # Boltzmann constant [J/K]
+N_A = 6.02214076e23     # Avogadro number [mol^{-1}]
+epsilon_in_kcal_mol = 0.2   # energy unit [kcal/mol]: 1 eps = 0.2 kcal/mol
+distUnit_in_A = 4.5     # distance unit [A]: 1D = 4.5 angs
+
+T = round(T_in_K * k_B / (epsilon_in_kcal_mol * 4184 / N_A), 3) # 1 kcal=4184 J
+Lx = round(10.0 * Lx_in_nm / distUnit_in_A, 3)
+Ly = round(10.0 * Ly_in_nm / distUnit_in_A, 3)
+Lz = round(10.0 * Lz_in_nm / distUnit_in_A, 3)
+
+rcut_YU = round(10.0 * rcut_YU_in_nm / distUnit_in_A, 3)
+rcut_AH = round(10.0 * rcut_AH_in_nm / distUnit_in_A, 3)
+
+resize_dt = 0.01 # Time step in picoseconds for box resizing
+resize_T = 300 # Temperature for resizing run in Kelvin
+resize_steps=1000
 
 if __name__=='__main__':
     # Input parameters for all amino acids
@@ -70,17 +128,6 @@ if __name__=='__main__':
     relative_pos_rigid = np.append([[rigid_1_coord_1], [rigid_1_coord_2], [rigid_1_coord_3]], [[rigid_2_coord_1], [rigid_2_coord_2], [rigid_2_coord_3]]).reshape(-1, 3)
     # print(relative_pos_rigid.shape)
 
-    # Simulation parameters
-    nx = 5
-    nx = 5
-    nx = 4
-    boxsize = 15.0
-    slab_z_length = 280.0
-    resize_dt = 0.01 # Time step in picoseconds for box resizing
-    resize_T = 300 # Temperature for resizing run in Kelvin
-    production_dt = 0.01
-    temp = resize_T * 8.3144598/1000.
-
     # Build a HOOMD snapshot of the system
     snap = gsd.hoomd.Snapshot()
     snap.particles.types = aa_type + ['R'] + ['Z']  # types of particles, ['R'] and ['Z'] are two rigid bodies
@@ -92,7 +139,7 @@ if __name__=='__main__':
     rigid_2_coord = np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
     position = np.concatenate((pos_chain_1, rigid_1_coord, pos_chain_2, rigid_2_coord,
                                 pos_chain_3), axis=0)
-    print(f"The shape of position is::{position.shape} ")
+    # print(f"The shape of position is::{position.shape} ")
 
     snap.particles.position = position # positions of the free particles and rigid body constituent particles in the system
     snap.particles.N = len(position)
@@ -168,7 +215,6 @@ if __name__=='__main__':
 
     bond_length = 0.38
     box_length = bond_length * prot_length + 10
-
     ## Dimensions of the box
     snap.configuration.dimensions = 3
     snap.configuration.box = [box_length, box_length, box_length, 0, 0, 0]
@@ -183,7 +229,7 @@ if __name__=='__main__':
 
     # Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('starting_config.gsd')
-
+    system.replicate(nx=nx, ny=ny, nz=nz)
     snapshot = system.take_snapshot()
 
     # Define the rigid bodies
@@ -219,6 +265,7 @@ if __name__=='__main__':
     center_group =hoomd.group.rigid_center()
     non_rigid_group = hoomd.group.nonrigid()
     moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
+
 
     # Harmonic potential between bonded particles
     harmonic = hoomd.md.bond.harmonic()
@@ -259,16 +306,145 @@ if __name__=='__main__':
     yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=0)
     yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=0)
 
-    hoomd.md.integrate.mode_standard(dt=production_dt)
+    hoomd.md.integrate.mode_standard(dt=dt)
 
     # Set up integrator
-    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=temp, seed=399991)
-    for i,name in enumerate(aa_type):
-        langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
+    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=399991)
+
+    #hoomd.update.box_resize(L=hoomd.variant.linear_interp([(0,system.box.Lx),
+    #                        (resize_steps-500,box_length)]),scale_particles=True)
+    # for i,name in enumerate(aa_type):
+        # langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
     # langevin.set_gamma('R', gamma=1)
     # langevin.set_gamma('Z', gamma=1)
     # langevin.set_gamma('R', gamma=prot_mass_arr/1000.0)
     # langevin.set_gamma('Z', gamma=prot_mass_arr/1000.0)
 
-    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
+    hoomd.dump.gsd('rigid_FUS_start.gsd', period=100, group=all_group, truncate=True)
+    hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
     hoomd.run(1000)
+#################################################################################################
+# ## resize.gsd contains replicated system with 100 chains and box size of 15x15x15 nm
+# ----------------------------------------------------------------------------------------------
+# ## 3.0 Extend 15nm cube to 15x15x280nm slab
+################################################################################################
+    def extend(s):
+        boxdim = s.configuration.box[:3]
+        zmin,zmax,dz = -boxdim[2]/2., boxdim[2]/2., boxdim[2]
+        pos1 =  s.particles.position
+        pos = pos1.copy()
+        skip=0
+        ncomp=1
+        for k in range(ncomp):
+            nchain = int(s.particles.N/chain_length)
+            nres = chain_length
+            for i in range(nchain):
+                mol_coord = pos[i*nres+skip:(i+1)*nres+skip,2]
+                for j in range(1,nres):
+                    dist2 = (mol_coord[j] - mol_coord[j-1])**2
+                    if dist2 > 8:
+                        excess = np.sign(mol_coord[j] - mol_coord[j-1])*dz
+                        mol_coord[j] = mol_coord[j] - excess
+                    com = np.mean(mol_coord)
+                    if com < zmin:
+                        mol_coord += dz
+                    elif com > zmax:
+                        mol_coord -= dz
+                pos[i*nres+skip:(i+1)*nres+skip,2] = mol_coord
+            skip += nchain*nres
+        return pos
+
+
+    f = gsd.pygsd.GSDFile(open('rigid_FUS_start.gsd','rb'))
+    t = gsd.hoomd.HOOMDTrajectory(f)
+    s1 = t[0]
+    s = gsd.hoomd.Snapshot()
+    s.particles.N = s1.particles.N
+    s.particles.types = s1.particles.types
+    s.particles.typeid = s1.particles.typeid
+    s.particles.mass = s1.particles.mass
+    s.particles.charge = s1.particles.charge
+    s.particles.position = extend(s1)
+    s.bonds.N = s1.bonds.N
+    s.bonds.types = s1.bonds.types
+    s.bonds.typeid = s1.bonds.typeid
+    s.bonds.group = s1.bonds.group
+    s.configuration.box = s1.configuration.box
+    s.configuration.dimensions=3
+    s.configuration.box = [s1.configuration.box[0],s1.configuration.box[1],slab_z_length,0,0,0]
+    s.configuration.step = 0
+    outfile = gsd.hoomd.open('box2slab_extend.gsd','wb')
+    outfile.append(s)
+    outfile.close()
+    #################################################################################################
+    # ### Minimized slab formed and saved in minimize.gsd
+    #---------------------------------------------------------------------------------------------
+    # ## 4.0. Run a production slab simulation using minimize.gsd from previous step
+    ################################################################################################
+    hoomd.context.initialize()
+    system = hoomd.init.read_gsd('box2slab_extend.gsd')
+
+    n_steps = production_steps # 1 microseconds
+
+    fileroot = 'Production'
+    nl = hoomd.md.nlist.cell()
+
+    ## Bonds
+    # Harmonic potential between bonded particles
+    harmonic = hoomd.md.bond.harmonic()
+    harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = 8368, r0 = bond_length)
+
+    # Non-bonded Pairwise interactions
+    nl.reset_exclusions(exclusions=['1-2', 'body'])
+    nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = nl)
+    for i in aa_type:
+        for j in aa_type:
+            nb.pair_coeff.set(i, j, lam = (aa_param_dict[i][3] + aa_param_dict[j][3])/2.,
+                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
+        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0., r_cut=0.)
+        nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0, r_cut=0.)
+        nb.pair_coeff.set('R', i, lam=0., epsilon=0., sigma=0., r_cut=0.)
+        nb.pair_coeff.set('Z', i, lam=0., epsilon=0, sigma=0, r_cut=0.)
+    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+    nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
+
+    # Electrostatics
+    yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
+    # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
+    for i, atom1 in enumerate(aa_type):
+        atom1 = aa_type[i]
+        for j, atom2 in enumerate(aa_type):
+            atom2 = aa_type[j]
+            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
+        yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=0)
+        yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=0)
+        yukawa.pair_coeff.set('R', atom1, epsilon=0, kappa=1.0, r_cut=0)
+        yukawa.pair_coeff.set('Z', atom1, epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+
+    # # Grouping of the particles
+    all_group = hoomd.group.all()
+    center_group =hoomd.group.rigid_center()
+    non_rigid_group = hoomd.group.nonrigid()
+    moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
+
+    ## Set up integrator
+    hoomd.md.integrate.mode_standard(dt=production_dt) # Time units in ps
+    temp = production_T*0.00831446
+    integrator = hoomd.md.integrate.langevin(group=moving_group, kT=temp, seed=399991) # Temp is kT/0.00831446
+    #for cnt,i in enumerate(aakeys):
+        #integrator.set_gamma(i,gamma=aamass[cnt]/1000.0)
+    ## Outputs
+    hoomd.analyze.log(filename=fileroot+'.log', quantities=['potential_energy', 'pressure_xx', 'pressure_yy', 'pressure_zz', 'temperature','lx','ly','lz'], period=100000, overwrite=False, header_prefix='#')
+    hoomd.analyze.log(filename='stress.log', quantities=['pressure_xy', 'pressure_xz', 'pressure_yz'], period=100000, overwrite=False, header_prefix='#') # Output stress tensor
+    hoomd.dump.gsd('restart_tmp1.gsd', period=1000000, group=all_group, truncate=True)
+    hoomd.dump.gsd('restart_tmp2.gsd', period=1000000, group=all_group, truncate=True, phase=500000)
+    hoomd.dump.dcd(fileroot+'_dump.dcd', period=100000, group=all_group, overwrite=False)
+
+    ## Run simulation
+    hoomd.run_upto(1000, limit_hours=48)
+########################################################################################################
