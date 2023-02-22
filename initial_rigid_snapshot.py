@@ -22,8 +22,11 @@ stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
 
 # ### SIMULATION PARAMETERS
+saveTrajectories = 1
+numberGSDframes = 1000 # the number of snapshots the sim writes into the .gsd file
+
 dt = 2.69e-3    # time step (in HOOMD units; equals dt = 1e-14)
-steps = int(500)
+steps = int(5000)
 T_in_K = 300
 
 Lx_in_nm = 15                    # box size x-direction in nm (1D = 4,5A --> 15 nm = 33.333 D)
@@ -37,7 +40,7 @@ rcut_AH_in_nm = 2.0
 
 # box_length = bond_length * prot_length + 10
 box_length = 900
-
+# box_length = Lx*Ly*Lz
 # HOOMD units
 # Absolute energy scale of the short-ranged interactions between all pairs of
 # amino acids (1 epsilon = 0.2 kcal/mol)
@@ -59,7 +62,7 @@ T = round(T_in_K * k_B / (epsilon_in_kcal_mol * 4184 / N_A), 3) # 1 kcal=4184 J
 Lx = round(10.0 * Lx_in_nm / distUnit_in_A, 3)
 Ly = round(10.0 * Ly_in_nm / distUnit_in_A, 3)
 Lz = round(10.0 * Lz_in_nm / distUnit_in_A, 3)
-box_length = Lx*Ly*Lz
+
 rcut_YU = round(10.0 * rcut_YU_in_nm / distUnit_in_A, 3)
 rcut_AH = round(10.0 * rcut_AH_in_nm / distUnit_in_A, 3)
 
@@ -259,14 +262,14 @@ if __name__=='__main__':
 
     # Neighbourslist and exclusions
     nl = hoomd.md.nlist.cell()
-    nl.reset_exclusions(exclusions=['1-2'])
+    nl.reset_exclusions(exclusions=['1-2', 'body'])
 
     # Non-bonded Pairwise interactions
     nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = nl)
     for i in aa_type:
         for j in aa_type:
             nb.pair_coeff.set(i, j, lam = (aa_param_dict[i][3] + aa_param_dict[j][3])/2.,
-                            epsilon=epsilon, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=rcut_AH)
+                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
         nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0., r_cut=0.)
         nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0, r_cut=0.)
         nb.pair_coeff.set('R', i, lam=0., epsilon=0., sigma=0., r_cut=0.)
@@ -277,13 +280,13 @@ if __name__=='__main__':
     nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0, r_cut=0)
 
     # Electrostatics
-    yukawa = hoomd.md.pair.yukawa(r_cut=rcut_YU, nlist=nl)
+    yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
     # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
     for i, atom1 in enumerate(aa_type):
         atom1 = aa_type[i]
         for j, atom2 in enumerate(aa_type):
             atom2 = aa_type[j]
-            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=kappa, r_cut=False)
+            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=kappa, r_cut=3.5)
         yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=0)
         yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=0)
         yukawa.pair_coeff.set('R', atom1, epsilon=0, kappa=1.0, r_cut=0)
@@ -306,5 +309,6 @@ if __name__=='__main__':
     # langevin.set_gamma('R', gamma=prot_mass_arr/1000.0)
     # langevin.set_gamma('Z', gamma=prot_mass_arr/1000.0)
 
-    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
-    hoomd.run(steps)
+    hoomd.dump.gsd('rigid_FUS_start.gsd', period=100, group=all_group, truncate=True)
+    hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
+    hoomd.run(100000)
