@@ -4,17 +4,15 @@
 # this script starts an MD simulation of multiple chains of a chosen sequence of the protein hnRNPA1
 # short-range pairwise potential: HPS model (accounts for both protein-protein and protein-splvent interactions)
 
-import datetime
 import sys,os
-import math
 import numpy as np
 import gsd, gsd.hoomd, gsd.pygsd
 import hoomd, hoomd.md
 # import azplugins
-# try:
-import azplugins
-# except ImportError:
-    # from hoomd import azplugins
+try:
+    from hoomd import azplugins
+except ImportError:
+    import azplugins
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import hoomd_util as hu
@@ -23,19 +21,6 @@ import hoomd_util as hu
 #        mass -> amu
 #        energy -> kJ/mol
 
-# Creating subfolders for results and setting date and time
-DATETIME = datetime.datetime.now()
-current_datetime = (str(DATETIME.year) + str(DATETIME.month) + str(DATETIME.day) +
-                    str(DATETIME.hour) + str(DATETIME.minute) + str(DATETIME.second))
-
-# create a folder for results (if not exists already)
-try:
-    os.makedirs("results")
-except FileExistsError:
-    # directory already exists
-    pass
-# create directory in folder 'results' to save the results from single simulation.
-os.makedirs("results/" + current_datetime + "/")
 # Input files
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
@@ -217,7 +202,7 @@ if __name__=='__main__':
         bonds = np.append(bonds, [[i, i+1]], axis=0)
     snap.bonds.group = bonds
     snap.bonds.N = len(bonds)
-    snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2']
+    snap.bonds.types = ['AA_bond', 'rigid_1']
 
     # Type ID's of the polymer chain
     id_chain_1 = prot_id[:284]
@@ -230,23 +215,17 @@ if __name__=='__main__':
     type_id[285:285+50] = prot_id[371:421]
     type_id[335] = 21
     type_id[336:] = prot_id[453:]
-    # print(type_id.shape,position.shape,moment_inertia.shape,orientation.shape)
+    print(type_id.shape,position.shape,moment_inertia.shape,orientation.shape)
     snap.particles.typeid = type_id
 
     bond_length = 0.381
-    box_length = bond_length * prot_length + 600
+    box_length = bond_length * prot_length + 700
     print(box_length)
     print(prot_length)
     # exit()
-    # Dimensions of the box
-    ## KxKxK sinple cubic lattice of width L
-    spacing = 200.3
-    K = math.ceil(len(position)**(1/3))
-    L = K * spacing
-    print(L)
-    # exit()
+    ## Dimensions of the box
     snap.configuration.dimensions = 3
-    snap.configuration.box = [L, L, L, 0, 0, 0]
+    snap.configuration.box = [box_length, box_length, box_length, 0, 0, 0]
     snap.configuration.step = 0
 
     # Write the snapshot to the file
@@ -254,7 +233,7 @@ if __name__=='__main__':
         f.append(snap)
         f.close()
 
-    hoomd.context.initialize("")
+    hoomd.context.initialize("--mode=cpu")
 
     # Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('starting_config.gsd')
@@ -272,11 +251,6 @@ if __name__=='__main__':
     rigid.set_param('R',
                     types = type_rigid_1,
                     positions = relative_pos_rigid_1[:])
-
-    ### Second rigid body
-    rigid.set_param('Z',
-                    types = type_rigid_2,
-                    positions = relative_pos_rigid_2[:])
 
     rigid.create_bodies()
 
@@ -298,61 +272,56 @@ if __name__=='__main__':
 
     # Harmonic potential between bonded particles
     harmonic = hoomd.md.bond.harmonic()
-    harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = 8368, r0 = bond_length)
+    harmonic.bond_coeff.set(['AA_bond', 'rigid_1'], k = 8368, r0 = bond_length)
 
     # Neighbourslist and exclusions
-    cell = hoomd.md.nlist.cell()
-    cell.reset_exclusions(exclusions=['1-2', 'body'])
+    nl = hoomd.md.nlist.cell()
+    nl.reset_exclusions(exclusions=['1-2', 'body'])
 
     # Non-bonded Pairwise interactions for two rigid bodies
-    nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = cell)
+    nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = nl)
     for i in aa_type:
         for j in aa_type:
             nb.pair_coeff.set(i, j, lam = (aa_param_dict[i][3] + aa_param_dict[j][3])/2.,
-                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./3., r_cut=2.0)
-        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set('R', i, lam=0., epsilon=0., sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set('Z', i, lam=0., epsilon=0, sigma=0.2, r_cut=2.0)
-    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0.2, r_cut=0)
-    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=0)
-    nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=0)
+                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./2., r_cut=2.0)
+        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0., r_cut=0.)
+        nb.pair_coeff.set('R', i, lam=0., epsilon=0., sigma=0., r_cut=0.)
+    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0, r_cut=0)
 
 
     # # Electrostatics
-    yukawa = hoomd.md.pair.yukawa(r_cut=3.5, nlist = cell)
-    # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
-    for i, atom1 in enumerate(aa_type):
-        atom1 = aa_type[i]
-        for j, atom2 in enumerate(aa_type):
-            atom2 = aa_type[j]
-            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set('R', atom1, epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set('Z', atom1, epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
+    # yukawa = hoomd.md.pair.yukawa(r_cut=0.0, nlist=nl)
+    # # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
+    # for i, atom1 in enumerate(aa_type):
+    #     atom1 = aa_type[i]
+    #     for j, atom2 in enumerate(aa_type):
+    #         atom2 = aa_type[j]
+    #         yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
+    #     yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=0)
+    #     yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    #     yukawa.pair_coeff.set('R', atom1, epsilon=0, kappa=1.0, r_cut=0)
+    #     yukawa.pair_coeff.set('Z', atom1, epsilon=0, kappa=1.0, r_cut=0)
+    # yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=0)
+    # yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=0)
+    # yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=0)
 
     hoomd.md.integrate.mode_standard(dt=dt)
 
     # Set up integrator
-    ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=3991)
+    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=3991)
 
     #hoomd.update.box_resize(L=hoomd.variant.linear_interp([(0,system.box.Lx),
     #                        (resize_steps-500,box_length)]),scale_particles=True)
     for i,name in enumerate(aa_type):
-        # if i == 'A'
-        ld.set_gamma(name, gamma=aa_mass[i]/1000.0)
+        langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
     # langevin.set_gamma('R', gamma=1)
     # langevin.set_gamma('Z', gamma=1)
     # langevin.set_gamma('R', gamma=prot_mass_arr/1000.0)
     # langevin.set_gamma('Z', gamma=prot_mass_arr/1000.0)
 
     hoomd.dump.gsd('rigid_FUS_start.gsd', period=10, group=all_group, truncate=True)
-    # hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
-    hoomd.run(1)
+    hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
+    hoomd.run(100)
 #################################################################################################
 # ## resize.gsd contains replicated system with 100 chains and box size of 15x15x15 nm
 # ----------------------------------------------------------------------------------------------
