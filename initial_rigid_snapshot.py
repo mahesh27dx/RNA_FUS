@@ -12,9 +12,9 @@ import gsd, gsd.hoomd, gsd.pygsd
 import hoomd, hoomd.md
 # import azplugins
 # try:
-import azplugins
+#import azplugins
 # except ImportError:
-    # from hoomd import azplugins
+from hoomd import azplugins
 import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 import hoomd_util as hu
@@ -55,43 +55,42 @@ saveTrajectories = 1
 numberGSDframes = 1000 # the number of snapshots the sim writes into the .gsd file
 
 
-dt = 0.005    # time step (in HOOMD units; equals dt = 1e-14)
+dt = 0.01    # time step (in HOOMD units; equals dt = 1e-14)
 
-dt = 2.69e-3    # time step (in HOOMD units; equals dt = 1e-14)
+#dt = 2.69e-3    # time step (in HOOMD units; equals dt = 1e-14)
 
-steps = int(5000)
-T_in_K = 300
+# steps = int(5000)
+# T_in_K = 300
 
 Lx_in_nm = 15                    # box size x-direction in nm (1D = 4,5A --> 15 nm = 33.333 D)
 Ly_in_nm = 15                    # box size y-direction in nm (1D = 4,5A --> 15 nm =  33.333 D)
 Lz_in_nm = 150                    # box size z-direction in nm (1D = 4,5A --> 75 nm =  166.667 D)
 
 # Cutoff radius of electrostatic interactions in nm (Coulombic term; HOOMD: Yukawa potential)
-rcut_YU_in_nm = 4.0
+# rcut_YU_in_nm = 4.0
 # Cutoff radius of short range interactions in nm (Ashbaugh Hatch functional form)
-rcut_AH_in_nm = 2.0
+# rcut_AH_in_nm = 2.0
 
 
 # SLAB DIMENSIONS
-boxsize=15.0 # The x and y dimensions of the slab configuration in nanometers
-slab_z_length = 280.0 # The z dimension of the slab configuration in nanometers
+# boxsize=15.0 # The x and y dimensions of the slab configuration in nanometers
+# slab_z_length = 280.0 # The z dimension of the slab configuration in nanometers
 
 # box_length = 900
 
 # box_length = bond_length * prot_length + 10
-box_length = 900
-
+# box_length = 900
 # box_length = Lx*Ly*Lz
 # HOOMD units
 # Absolute energy scale of the short-ranged interactions between all pairs of
 # amino acids (1 epsilon = 0.2 kcal/mol)
-epsilon = 1.0
-r0 = 0.38 / 0.45    # bond equilibrium position (see harmonic potential, r0=3.8A, 1D= 4.5 A)
+# epsilon = 1.0
+# r0 = 0.38 / 0.45    # bond equilibrium position (see harmonic potential, r0=3.8A, 1D= 4.5 A)
 # spring constant (see harmonic potential, k=20J/m^2), high=> stiff: bond length constrained
 # to be almost exactly sigma.
-k = 2025.0
-D = 80.0    # dielectric constant of the solvent (see Yukawa potential)
-kappa = 1/2.222 # inverse (due to def of yukawa) of Debye screening length (~1nm)
+# k = 2025.0
+# D = 80.0    # dielectric constant of the solvent (see Yukawa potential)
+# kappa = 1/2.222 # inverse (due to def of yukawa) of Debye screening length (~1nm)
 
 # Convert temperature and box size in HOOMD units:
 k_B = 1.38064852e-23    # Boltzmann constant [J/K]
@@ -101,22 +100,22 @@ distUnit_in_A = 4.5     # distance unit [A]: 1D = 4.5 angs
 
 
 # T = round(T_in_K * k_B / (epsilon_in_kcal_mol * 4184 / N_A), 3) # 1 kcal=4184 J
-T = 300
+T = 340
 
-T = round(T_in_K * k_B / (epsilon_in_kcal_mol * 4184 / N_A), 3) # 1 kcal=4184 J
+# T = round(T_in_K * k_B / (epsilon_in_kcal_mol * 4184 / N_A), 3) # 1 kcal=4184 J
 
-Lx = round(10.0 * Lx_in_nm / distUnit_in_A, 3)
-Ly = round(10.0 * Ly_in_nm / distUnit_in_A, 3)
-Lz = round(10.0 * Lz_in_nm / distUnit_in_A, 3)
+# Lx = round(10.0 * Lx_in_nm / distUnit_in_A, 3)
+# Ly = round(10.0 * Ly_in_nm / distUnit_in_A, 3)
+# Lz = round(10.0 * Lz_in_nm / distUnit_in_A, 3)
 
-rcut_YU = round(10.0 * rcut_YU_in_nm / distUnit_in_A, 3)
-rcut_AH = round(10.0 * rcut_AH_in_nm / distUnit_in_A, 3)
+# rcut_YU = round(10.0 * rcut_YU_in_nm / distUnit_in_A, 3)
+# rcut_AH = round(10.0 * rcut_AH_in_nm / distUnit_in_A, 3)
 
-slab_z_length = 280.0
+# slab_z_length = 280.0
 
-resize_dt = 0.01 # Time step in picoseconds for box resizing
-resize_T = 300 # Temperature for resizing run in Kelvin
-resize_steps=1000
+# resize_dt = 0.01 # Time step in picoseconds for box resizing
+# resize_T = 300 # Temperature for resizing run in Kelvin
+# resize_steps=1000
 
 if __name__=='__main__':
     # Input parameters for all amino acids
@@ -135,7 +134,7 @@ if __name__=='__main__':
     # Now we can translate the entire sequence into a sequence of numbers and
     # assign to each Amino acid of the sequence its stats
     prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
-    prot_position_array = np.array(prot_position)/10 # converts the position list into an array
+    prot_position_array = np.array(prot_position)/10. # converts the position list into an array
     prot_length = len(prot_id)
     prot_total_mass = np.sum(prot_mass)
     prot_mass_arr = np.array(prot_mass)
@@ -238,7 +237,11 @@ if __name__=='__main__':
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2']
 
     # Type ID's of the polymer chain
-    id_chain_1 = prot_id[:284]
+    poly_chain_one = prot_id[:284]
+    # id_chain_1 = prot_id[:284]
+    id_chain_1 = poly_chain_one
+    # print(id_chain_1)
+    # exit()
     id_chain_2 = prot_id[371:421]
     id_chain_3 = prot_id[453:]
     type_id = np.arange(0, len(position))
@@ -253,7 +256,7 @@ if __name__=='__main__':
 
 
     bond_length = 0.381
-    box_length = bond_length * prot_length + 600
+    box_length = bond_length * prot_length + 550
     print(box_length)
     print(prot_length)
     # exit()
@@ -267,7 +270,7 @@ if __name__=='__main__':
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
-    snap.configuration.box = [L, L, L, 0, 0, 0]
+    snap.configuration.box = [box_length, box_length, box_length, 0, 0, 0]
     snap.configuration.step = 0
 
     # Write the snapshot to the file
@@ -319,7 +322,7 @@ if __name__=='__main__':
 
     # Harmonic potential between bonded particles
     harmonic = hoomd.md.bond.harmonic()
-    harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = k, r0 = r0)
+    harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = 8360, r0 = 0.381)
 
     # Neighbourslist and exclusions
     cell = hoomd.md.nlist.cell()
@@ -330,60 +333,49 @@ if __name__=='__main__':
     for i in aa_type:
         for j in aa_type:
             nb.pair_coeff.set(i, j, lam = (aa_param_dict[i][3] + aa_param_dict[j][3])/2.,
-                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10./3., r_cut=2.0)
-        nb.pair_coeff.set(i, 'R', lam=0., epsilon=0., sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set(i, 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set('R', i, lam=0., epsilon=0., sigma=0.2, r_cut=2.0)
-        nb.pair_coeff.set('Z', i, lam=0., epsilon=0, sigma=0.2, r_cut=2.0)
-    nb.pair_coeff.set('R', 'R', lam=0., epsilon=0, sigma=0.2, r_cut=0)
-    nb.pair_coeff.set('R', 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=0)
-    nb.pair_coeff.set('Z', 'Z', lam=0., epsilon=0, sigma=0.2, r_cut=0)
+                            epsilon=0.8368, sigma=(aa_param_dict[i][2] + aa_param_dict[j][2])/10.0/2.0, r_cut = 2.0)
+        nb.pair_coeff.set(i, 'R', lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+        nb.pair_coeff.set(i, 'Z', lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+        nb.pair_coeff.set('R', i, lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+        nb.pair_coeff.set('Z', i, lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+    nb.pair_coeff.set('R', 'R', lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+    nb.pair_coeff.set('R', 'Z', lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
+    nb.pair_coeff.set('Z', 'Z', lam = 0.0, epsilon = 0.0, sigma = 0.0, r_cut = 0.0)
 
-
-    # # Electrostatics
-    yukawa = hoomd.md.pair.yukawa(r_cut=3.5, nlist = cell)
-    # yukawa.pair_coeff.set('R','Z', epsilon=1.73136, kappa=1.0, r_cut=3.5)
+    # Electrostatics
+    yukawa = hoomd.md.pair.yukawa(r_cut = 0.0, nlist = cell)
     for i, atom1 in enumerate(aa_type):
         atom1 = aa_type[i]
         for j, atom2 in enumerate(aa_type):
             atom2 = aa_type[j]
-            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set(atom1, 'R', epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set(atom1, 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set('R', atom1, epsilon=0, kappa=1.0, r_cut=3.5)
-        yukawa.pair_coeff.set('Z', atom1, epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('R', 'R', epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('R', 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
-    yukawa.pair_coeff.set('Z', 'Z', epsilon=0, kappa=1.0, r_cut=3.5)
+            yukawa.pair_coeff.set(atom1, atom2, epsilon=aa_param_dict[atom1][1]*aa_param_dict[atom2][1]*1.73136, kappa = 1.0, r_cut = 2.2)
+        yukawa.pair_coeff.set(atom1, 'R', epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+        yukawa.pair_coeff.set(atom1, 'Z', epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+        yukawa.pair_coeff.set('R', atom1, epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+        yukawa.pair_coeff.set('Z', atom1, epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+    yukawa.pair_coeff.set('R', 'R', epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+    yukawa.pair_coeff.set('R', 'Z', epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
+    yukawa.pair_coeff.set('Z', 'Z', epsilon = 0.0, kappa = 1.0, r_cut = 0.0)
 
     hoomd.md.integrate.mode_standard(dt=dt)
 
     # Set up integrator
-
-    ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=3991)
+    ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=1)
 
     #hoomd.update.box_resize(L=hoomd.variant.linear_interp([(0,system.box.Lx),
     #                        (resize_steps-500,box_length)]),scale_particles=True)
     for i,name in enumerate(aa_type):
-        # if i == 'A'
         ld.set_gamma(name, gamma=aa_mass[i]/1000.0)
-
-    langevin = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=399991)
-
-    #hoomd.update.box_resize(L=hoomd.variant.linear_interp([(0,system.box.Lx),
-    #                        (resize_steps-500,box_length)]),scale_particles=True)
-    # for i,name in enumerate(aa_type):
-        # langevin.set_gamma(name, gamma=aa_mass[i]/1000.0)
 
     # langevin.set_gamma('R', gamma=1)
     # langevin.set_gamma('Z', gamma=1)
     # langevin.set_gamma('R', gamma=prot_mass_arr/1000.0)
     # langevin.set_gamma('Z', gamma=prot_mass_arr/1000.0)
 
-
-    hoomd.dump.gsd('rigid_FUS_start.gsd', period=10, group=all_group, truncate=True)
+    #print(snap.particles.position)
+    hoomd.dump.gsd('rigid_FUS_start.gsd', period=1, group=all_group, truncate=True)
     # hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
-    hoomd.run(1)
+    hoomd.run(500)
 #################################################################################################
 # ## resize.gsd contains replicated system with 100 chains and box size of 15x15x15 nm
 # ----------------------------------------------------------------------------------------------
