@@ -1,20 +1,20 @@
 #!/bin/bash
 
-#SBATCH -J FUS_1_1ms      # Job name
-#SBATCH -o fus_%j.out       # Specify stdout output file (%j expands to jobId)
+#SBATCH -J FUS_initial      # Job name
+#SBATCH -o fus_init_%j.out       # Specify stdout output file (%j expands to jobId)
 #SBATCH -p m2_gpu           # Partition name
 #SBATCH -c 2
 #SBATCH -n 1                # Total number of tasks
 #SBATCH -t 118:00:00         # Run time (hh:mm:ss)
 #SBATCH -A m2_komet331hpc   # Specify allocation to charge against
-#SBATCH --mem=8G           # Memory allocation
+#SBATCH --mem=2G           # Memory allocation
 
 #mkdir output_10ns
 
 timestart=$(date +"%s")
 #### LOAD MODULES ########
 # setpkgs -a phys/HOOMD/2.9.6-fosscuda-2020b-double
-. /home/yadavmah/binaries/env/bin/activate
+#. /home/yadavmah/binaries/env/bin/activate
 #module load phys/HOOMD/2.9.6-fosscuda-2020b-single
 module load system/CUDA/11.1.1-GCC-10.2.0
 #module load phys/HOOMD/2.9.6-fosscuda-2020b-single
@@ -24,8 +24,8 @@ module load system/CUDA/11.1.1-GCC-10.2.0
 
 #for i in 190 200
 #do
-# srun python3 initial_rigid_snapshot.py  #input/FUS_LC.dat $i
-srun python3 rough.py  input_files/FUS_LC.dat
+srun python3 simulation_run.py  #input/FUS_LC.dat $i
+
 #done
 
 timeend=$(date +"%s")
