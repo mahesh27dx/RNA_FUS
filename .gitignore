@@ -52,3 +52,8 @@ latex.out/
 *.loa
 .DS_Store
 ._.DS_Store
+
+# Ignore large data files
+.gsd
+.dcd
+.log
