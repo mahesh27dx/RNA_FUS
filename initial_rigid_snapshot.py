@@ -68,7 +68,7 @@ if __name__=='__main__':
     rigid_1_coord_2 = np.sum(prot_position_array[284:371, 1] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
     rigid_1_coord_3 = np.sum(prot_position_array[284:371, 2] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
     relative_pos_rigid_1 = prot_position_array[284:371] - np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
-    relative_pos_rigid_1 = relative_pos_rigid_1 / 5.
+    relative_pos_rigid_1 = relative_pos_rigid_1
 
     I_general_rigid_1 = hu.protein_moment_inertia(relative_pos_rigid_1, prot_mass[284:371]) # Moment of inertia
     I_diag_rigid_1, E_vec_rigid_1 = np.linalg.eig(I_general_rigid_1)
@@ -79,7 +79,7 @@ if __name__=='__main__':
     rigid_2_coord_2 = np.sum(prot_position_array[421:453, 1] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
     rigid_2_coord_3 = np.sum(prot_position_array[421:453, 2] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
     relative_pos_rigid_2 = prot_position_array[421:453] - np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
-    relative_pos_rigid_2 = relative_pos_rigid_2 / 5.
+    relative_pos_rigid_2 = relative_pos_rigid_2
 
     I_general_rigid_2 = hu.protein_moment_inertia(relative_pos_rigid_2, prot_mass[421:453])
     I_diag_rigid_2, E_vec_rigid_2 = np.linalg.eig(I_general_rigid_2)
@@ -137,8 +137,10 @@ if __name__=='__main__':
     orien_chain_1 = np.zeros((len(prot_charge[:284]), 4), dtype=float)
     orien_chain_2 = np.zeros((len(prot_charge[371:421]), 4), dtype=float)
     orien_chain_3 = np.zeros((len(prot_charge[453:]), 4), dtype=float)
-    orien_rigid_1 = np.array([[0, 1, 1, 1]])
-    orien_rigid_2 = np.array([[0, 1, 1, 1]])
+    # orien_rigid_1 = np.array([[0, 1, 1, 1]])
+    # orien_rigid_2 = np.array([[0, 1, 1, 1]])
+    orien_rigid_1 = np.array([[1, 0, 0, 0]])
+    orien_rigid_2 = np.array([[1, 0, 0, 0]])
     orientation = np.concatenate((orien_chain_1, orien_rigid_1, orien_chain_2,
                                     orien_rigid_2, orien_chain_3), axis=0)
     snap.particles.orientation = orientation
@@ -173,11 +175,15 @@ if __name__=='__main__':
     snap.particles.typeid = type_id
 
     bond_length = 0.381
-    box_length = bond_length * prot_length + 10
+    #box_length = bond_length * prot_length + 10
+    #print(box_length)
+    Lx = 150
+    Ly = 150
+    Lz = 300
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
-    snap.configuration.box = [box_length, box_length, box_length, 0, 0, 0]
+    snap.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
     snap.configuration.step = 0
 
     ## Write the snapshot to the file
@@ -189,6 +195,7 @@ if __name__=='__main__':
 
     ## Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
+    # system.replicate(nx=3, ny=3, nz=3)
     snapshot = system.take_snapshot()
 
     ## Types for the rigid bodies
@@ -214,11 +221,14 @@ if __name__=='__main__':
     center_group = hoomd.group.rigid_center()
     non_rigid_group = hoomd.group.nonrigid()
     moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
-    hoomd.md.integrate.mode_standard(dt=dt)
 
     ## Set up integrator
-    ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=1)
+    # hoomd.md.integrate.mode_standard(dt=dt)
+    # ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=1)
 
-    hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=1, group=all_group, overwrite=True, truncate=True)
+    hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=1, group=all_group, overwrite=True)
     ## hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
     hoomd.run(1)
+
+## Slab function
+

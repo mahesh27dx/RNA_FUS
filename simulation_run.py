@@ -34,9 +34,10 @@ parser = argparse.ArgumentParser(
 #     type = str
 #     help = f'Output file (allowed formats: {valid_output_formats})'
 # )
-parser.add_argument('-dt', '--dt', type=float, default=0.001, help='Time step size')
-parser.add_argument('-time' ,'--time', type=int, default=10000, help='Simulation run time')
-parser.add_argument('-temp' ,'--temp', type=int, default=300, help='temperature for the current simulation run')
+parser.add_argument('-dt', '--dt', type=float, help='time step size')
+parser.add_argument('-time' ,'--time', type=int, help='simulation run time')
+parser.add_argument('-temp' ,'--temp', type=int, help='temperature for the current simulation run')
+parser.add_argument('-period', '--period', type=int, help='number of time steps between file dumps.')
 
 args = parser.parse_args()
 
@@ -45,13 +46,11 @@ args = parser.parse_args()
 
 stat_file = 'input_files/stats_module.dat'
 
-
 dt = args.dt
 simulation_steps = args.time
+equilibration_steps = 1000
 T = args.temp
-
-# frames_output = 10000
-# box_length = 700
+period = args.period
 
 # Input parameters for all amino acids
 aa_param_dict = hu.aa_stats_from_file(stat_file)
@@ -125,15 +124,18 @@ ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=39999)
 #                        (resize_steps-500,box_length)]),scale_particles=True)
 for i,name in enumerate(aa_type):
     ld.set_gamma(name, gamma=aa_mass[i]/1000.0)
-
+ld.set_gamma('R', gamma=aa_mass[i]/1000.0)
+ld.set_gamma('Z', gamma=aa_mass[i]/1000.0)
 
 #print(snap.particles.position)
-hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=10000, group=all_group)
+hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group)
+
 hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],
-                  period=10000, header_prefix='#')
+                  period=equilibration_steps, overwrite=True)
 hoomd.analyze.log(filename='output_files/pressure' + '_' + str(T) + '.log',
                   quantities=['pressure', 'pressure_xx', 'pressure_yy', 'pressure_zz',
-                  'pressure_xy', 'pressure_xz', 'pressure_yz'], period=10000,
-                  header_prefix='#')
+                  'pressure_xy', 'pressure_xz', 'pressure_yz'], period=equilibration_steps, overwrite=True)
+
 hoomd.run(simulation_steps)
+
