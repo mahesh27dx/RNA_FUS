@@ -7,7 +7,6 @@ import math
 import numpy as np
 import gsd, gsd.hoomd, gsd.pygsd
 import hoomd, hoomd.md
-#import azplugins
 try:
     import azplugins
 except:
@@ -136,12 +135,10 @@ harmonic = hoomd.md.bond.harmonic()
 harmonic.bond_coeff.set(['AA_bond', 'rigid_1', 'rigid_2'], k = 8360, r0 = 0.381)
 
 # Neighbourslist and exclusions
-# buffer1 = box_length / 5
-# cell = hoomd.md.nlist.cell(r_buff=0.4)
 cell = hoomd.md.nlist.cell()
 cell.reset_exclusions(exclusions=['1-2', 'body'])
 
-# Non-bonded Pairwise interactions for two rigid bodies
+# Hydrophobic interactions
 nb = azplugins.pair.ashbaugh(r_cut = 0, nlist = cell)
 for i in aa_type:
     for j in aa_type:
@@ -184,7 +181,8 @@ ld.set_gamma('Z', gamma=aa_mass[i]/1000.0)
 
 #print(snap.particles.position)
 hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group, overwrite=True)
-hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group, overwrite=True)
+## Look at the unwrap_rigid variable for the .dcd dump
+# hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group, overwrite=True)
 
 hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],
