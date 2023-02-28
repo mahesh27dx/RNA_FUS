@@ -26,7 +26,7 @@ parser = argparse.ArgumentParser(
     "Initialize the system from input file and perform MD runs")
 # parser.add_argument(
 #     'ifile',
-#     type= str
+#     type= str,
 #     help = f'Input file (allowed formats: {valid_input_formats})'
 # )
 # parser.add_argument(
@@ -34,6 +34,7 @@ parser = argparse.ArgumentParser(
 #     type = str
 #     help = f'Output file (allowed formats: {valid_output_formats})'
 # )
+# ifile = pathlib.Path(args.ifile)
 parser.add_argument('-dt', '--dt', type=float, help='time step size')
 parser.add_argument('-time' ,'--time', type=int, help='simulation run time')
 parser.add_argument('-temp' ,'--temp', type=int, help='temperature for the current simulation run')
@@ -41,7 +42,7 @@ parser.add_argument('-period', '--period', type=int, help='number of time steps 
 
 args = parser.parse_args()
 
-# ifile = pathlib.Path(args.ifile)
+
 # ofile = pathlin.Path(args.ofile)
 
 stat_file = 'input_files/stats_module.dat'
@@ -66,6 +67,20 @@ for i in aa_type:
     aa_lambda.append(aa_param_dict[i][3])
 
 hoomd.context.initialize("")
+
+rigid = hoomd.md.constrain.rigid()
+
+## First rigid body
+rigid.set_param('R',
+                types = type_rigid_1,
+                positions = relative_pos_rigid_1)
+
+## Second rigid body
+rigid.set_param('Z',
+                types = type_rigid_2,
+                positions = relative_pos_rigid_2)
+
+rigid.create_bodies(create=False)
 
 # Read the "starting_config.gsd"
 system = hoomd.init.read_gsd('output_files/FUS_initial_snapshot.gsd')
@@ -129,6 +144,7 @@ ld.set_gamma('Z', gamma=aa_mass[i]/1000.0)
 
 #print(snap.particles.position)
 hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group)
+hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group)
 
 hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],
@@ -138,4 +154,3 @@ hoomd.analyze.log(filename='output_files/pressure' + '_' + str(T) + '.log',
                   'pressure_xy', 'pressure_xz', 'pressure_yz'], period=equilibration_steps, overwrite=True)
 
 hoomd.run(simulation_steps)
-
