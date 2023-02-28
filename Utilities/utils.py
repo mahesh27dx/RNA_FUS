@@ -52,3 +52,31 @@ class SysUtils:
             file_path = currentPath + '/../snapshots/' + filename
 
         return file_path
+
+"""
+# MSD analysis
+start = 0
+stop = -1
+
+with gsd.hoomd.open(trajFile, 'rb') as trajectory:
+    init_box = trajectory[start].configuration.box
+    final_box = trajectory[stop].configuration.box
+    assert all(
+            [i == j for i,j in zip(init_box, final_box)]
+            ), f"The box is not consistent over the range {start}:{stop}"
+    positions = []
+    images = []
+    for frame in trajectory[start:stop]:
+        atom_pos = frame.particles.position[:]
+        atom_img = frame.particles.image[:]
+        positions.append(atom_pos)
+        images.append(atom_img)
+    if np.count_nonzero(np.array(images)) == 0:
+        warn(
+            f"All of the images over the range {start}-{stop} "
+            "are [0,0,0]. You may want to ensure this gsd file "
+            "has the particle images written to it."
+            )
+    msd = freud.msd.MSD(box=init_box, mode='window')
+    msd.compute(np.array(positions), np.array(images), reset=False)
+    np.save("msd" + jobid + ".npy", msd.particle_msd)
