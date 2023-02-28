@@ -35,17 +35,17 @@ parser = argparse.ArgumentParser(
 #     help = f'Output file (allowed formats: {valid_output_formats})'
 # )
 # ifile = pathlib.Path(args.ifile)
+# ofile = pathlin.Path(args.ofile)
+
 parser.add_argument('-dt', '--dt', type=float, help='time step size')
 parser.add_argument('-time' ,'--time', type=int, help='simulation run time')
 parser.add_argument('-temp' ,'--temp', type=int, help='temperature for the current simulation run')
 parser.add_argument('-period', '--period', type=int, help='number of time steps between file dumps.')
-
 args = parser.parse_args()
 
-
-# ofile = pathlin.Path(args.ofile)
-
 stat_file = 'input_files/stats_module.dat'
+filein_FUS = 'input_files/calpha_FUS.pdb'
+
 
 dt = args.dt
 simulation_steps = args.time
@@ -66,7 +66,49 @@ for i in aa_type:
     aa_sigma.append(aa_param_dict[i][2]/10.) # divide by 10 to consvert angs-> nm
     aa_lambda.append(aa_param_dict[i][3])
 
+
+## Now we can translate the entire sequence into a sequence of numbers and
+# assign to each Amino acid of the sequence its stats
+prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
+prot_id = np.array(prot_id)
+prot_position_array = np.array(prot_position) / 10.
+# prot_position_array = prot_position_array + 8
+prot_length = len(prot_id)
+prot_total_mass = np.sum(prot_mass)
+prot_mass_arr = np.array(prot_mass)
+
+# Relative positions of the constituent particles of the two rigid bodies
+### First rigid body relative position and moment of inertia
+rigid_1_coord_1 = np.sum(prot_position_array[284:371, 0] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
+rigid_1_coord_2 = np.sum(prot_position_array[284:371, 1] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
+rigid_1_coord_3 = np.sum(prot_position_array[284:371, 2] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
+relative_pos_rigid_1 = prot_position_array[284:371] - np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
+relative_pos_rigid_1 = relative_pos_rigid_1
+
+I_general_rigid_1 = hu.protein_moment_inertia(relative_pos_rigid_1, prot_mass[284:371]) # Moment of inertia
+I_diag_rigid_1, E_vec_rigid_1 = np.linalg.eig(I_general_rigid_1)
+I_diag_rigid_1 = I_diag_rigid_1.reshape(-1, 3)
+
+## Second rigid body relative position and moment of inertia
+rigid_2_coord_1 = np.sum(prot_position_array[421:453, 0] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
+rigid_2_coord_2 = np.sum(prot_position_array[421:453, 1] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
+rigid_2_coord_3 = np.sum(prot_position_array[421:453, 2] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
+relative_pos_rigid_2 = prot_position_array[421:453] - np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
+relative_pos_rigid_2 = relative_pos_rigid_2
+
+I_general_rigid_2 = hu.protein_moment_inertia(relative_pos_rigid_2, prot_mass[421:453])
+I_diag_rigid_2, E_vec_rigid_2 = np.linalg.eig(I_general_rigid_2)
+I_diag_rigid_2 = I_diag_rigid_2.reshape(-1, 3)
+
+# Context initialize
 hoomd.context.initialize("")
+
+## Types for the rigid bodies
+type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
+type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
+
+# Read the "starting_config.gsd"
+system = hoomd.init.read_gsd('output_files/FUS_initial_snapshot.gsd')
 
 rigid = hoomd.md.constrain.rigid()
 
@@ -82,8 +124,6 @@ rigid.set_param('Z',
 
 rigid.create_bodies(create=False)
 
-# Read the "starting_config.gsd"
-system = hoomd.init.read_gsd('output_files/FUS_initial_snapshot.gsd')
 # system.replicate(nx=nx, ny=ny, nz=nz)
 snapshot = system.take_snapshot()
 all_group = hoomd.group.all()
@@ -143,8 +183,8 @@ ld.set_gamma('R', gamma=aa_mass[i]/1000.0)
 ld.set_gamma('Z', gamma=aa_mass[i]/1000.0)
 
 #print(snap.particles.position)
-hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group)
-hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group)
+hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group, overwrite=True)
+hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group, overwrite=True)
 
 hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],

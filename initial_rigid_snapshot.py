@@ -36,8 +36,7 @@ stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
 
 ##  SIMULATION PARAMETERS
-dt = 0.001    # time step (in HOOMD units; equals dt = 1e-14)
-T = 300
+dt = 0.001
 
 if __name__=='__main__':
     ## Input parameters for all amino acids
@@ -222,13 +221,7 @@ if __name__=='__main__':
     non_rigid_group = hoomd.group.nonrigid()
     moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
 
-    ## Set up integrator
-    # hoomd.md.integrate.mode_standard(dt=dt)
-    # ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=1)
 
     hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=1, group=all_group, overwrite=True)
-    ## hoomd.analyze.log(filename="potential_ene.log", quantities=['potential_energy'], period=100, overwrite=False)
+
     hoomd.run(1)
-
-## Slab function
-
