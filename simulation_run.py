@@ -48,9 +48,13 @@ filein_FUS = 'input_files/calpha_FUS.pdb'
 
 dt = args.dt
 simulation_steps = args.time
-equilibration_steps = 1000
+# equilibration_steps = 1000
 T = args.temp
 period = args.period
+
+k_B = 1.38064852e-23                 # boltzmann constant [J/K]
+N_A = 6.02214076e23                  # Avogadro constant [1/mol]
+epsilon_in_kcal_mol = 0.2            # energy unit [kcal/mol]: 1epsilon = 0.2 kcal/mol
 
 # Input parameters for all amino acids
 aa_param_dict = hu.aa_stats_from_file(stat_file)
@@ -125,6 +129,7 @@ rigid.create_bodies(create=False)
 
 # system.replicate(nx=nx, ny=ny, nz=nz)
 snapshot = system.take_snapshot()
+
 all_group = hoomd.group.all()
 center_group =hoomd.group.rigid_center()
 non_rigid_group = hoomd.group.nonrigid()
@@ -186,9 +191,9 @@ hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, g
 
 hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],
-                  period=equilibration_steps, overwrite=True)
+                  period=period, overwrite=True)
 hoomd.analyze.log(filename='output_files/pressure' + '_' + str(T) + '.log',
                   quantities=['pressure', 'pressure_xx', 'pressure_yy', 'pressure_zz',
-                  'pressure_xy', 'pressure_xz', 'pressure_yz'], period=equilibration_steps, overwrite=True)
+                  'pressure_xy', 'pressure_xz', 'pressure_yz'], period=period, overwrite=True)
 
 hoomd.run(simulation_steps)
