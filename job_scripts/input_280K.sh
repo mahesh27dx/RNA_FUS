@@ -3,11 +3,11 @@
 #SBATCH -J FUS_280K      # Job name
 #SBATCH -o fus_280K_%j.out       # Specify stdout output file (%j expands to jobId)
 #SBATCH -p m2_gpu           # Partition name
-#SBATCH -c 2
+#SBATCH -c 16
 #SBATCH -n 1                # Total number of tasks
 #SBATCH -t 118:00:00         # Run time (hh:mm:ss)
 #SBATCH -A m2_komet331hpc   # Specify allocation to charge against
-#SBATCH --mem=8G           # Memory allocation
+#SBATCH --mem=20G           # Memory allocation
 
 timestart=$(date +"%s")
 #### LOAD MODULES ########
