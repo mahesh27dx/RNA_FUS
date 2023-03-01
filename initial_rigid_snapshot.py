@@ -176,9 +176,12 @@ if __name__=='__main__':
     bond_length = 0.381
     #box_length = bond_length * prot_length + 10
     #print(box_length)
-    Lx = 150
-    Ly = 150
-    Lz = 300
+    # Lx = 33.33    # MDbulk units
+    # Ly = 33.33
+    # Lz = 333.33
+    Lx = 20
+    Ly = 20
+    Lz = 20
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
@@ -194,7 +197,8 @@ if __name__=='__main__':
 
     ## Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
-    # system.replicate(nx=3, ny=3, nz=3)
+    # no of chains nx=3, ny=3, nz=3=27
+    system.replicate(nx=3, ny=3, nz=3)
     snapshot = system.take_snapshot()
 
     ## Types for the rigid bodies
@@ -217,11 +221,11 @@ if __name__=='__main__':
 
     ## Grouping of the particles
     all_group = hoomd.group.all()
-    center_group = hoomd.group.rigid_center()
-    non_rigid_group = hoomd.group.nonrigid()
-    moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
+    # center_group = hoomd.group.rigid_center()
+    # non_rigid_group = hoomd.group.nonrigid()
+    # moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
 
 
-    hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=1, group=all_group, overwrite=True)
+    hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=None, group=all_group, overwrite=True)
 
-    hoomd.run(1)
+    hoomd.run(0)
