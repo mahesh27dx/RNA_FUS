@@ -44,6 +44,16 @@ def aa_stats_from_file(filename):
                 aa_dict[line_list[0]] = np.loadtxt(line_list[1:], dtype=float)
     return aa_dict
 
+def rna_stats_from_file(filename):
+
+    rna_dict = {}
+    with open(filename, 'r') as fid:
+        for line in fid:
+            if line[0]!='#':
+                line_list = line.rsplit()
+                rna_dict[line_list[0]] = np.loadtxt(line_list[1:], dtype=float)
+    return rna_dict
+
 
 def aa_stats_sequence(filename, aa_dict):
     '''
@@ -72,7 +82,7 @@ def aa_stats_sequence(filename, aa_dict):
     chain_charge = []
     chain_sigma = []
     chain_pos = []
-    aa_keys = list(aa_dict.keys()) 
+    aa_keys = list(aa_dict.keys())
     with open(filename, 'r') as fid:
         for line in fid:
             if line[0]=='A':
@@ -110,13 +120,13 @@ def protein_moment_inertia(chain_rel_pos, chain_mass, chain_sigma=None):
             I_ref = 2 / 5 * chain_mass[i]*chain_sigma[i]*chain_sigma[i]*np.identity(3)
             I += I_ref + ck1d_mass[i]*( np.dot(r,r)*np.identity(3) - np.outer(r, r) )
     return I
-    
+
 
 def U_ashbaugh_hatch(r, sigma, lambda_hps, epsilon=0.8368):
     '''
     HPS model: Ashbaugh-Hatch potential
     Lennard-Jones potential corrected for hydrophobicity effects
-    
+
     Parameters
     ----------
     r : float
@@ -136,21 +146,21 @@ def U_ashbaugh_hatch(r, sigma, lambda_hps, epsilon=0.8368):
     '''
     rmin = 2.**(1./6.) * sigma
     Ulj = 4*epsilon*((sigma/r)**12 - (sigma/r)**6)
-    
+
     if r <= rmin:
         U = Ulj + (1-lambda_hps)*epsilon
     else:
         U = lambda_hps*Ulj
-    
+
     return U
 
 def F_ashbaugh_hatch(r, sigma, lambda_hps, epsilon=0.8368):
     '''
     HPS model: Ashbaugh-Hatch force
     Lennard-Jones force corrected for hydrophobicity effects
-    
-    F_ashbaugh = - 
-    
+
+    F_ashbaugh = -
+
     Parameters
     ----------
     r : float
@@ -170,16 +180,16 @@ def F_ashbaugh_hatch(r, sigma, lambda_hps, epsilon=0.8368):
     '''
     rmin = 2.**(1./6.) * sigma
     Flj = 24*epsilon*( 2*(sigma/r)**12 - (sigma/r)**6 )/r
-    
+
     if r <= rmin:
         F = Flj
     else:
         F = lambda_hps*Flj
-    
+
     return F
 
 
-def Ulist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.8368):     
+def Ulist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.8368):
     '''
     HPS model:
     Table Ashbaugh-Hatch potential for HOOMD3 simulations
@@ -207,7 +217,7 @@ def Ulist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
     '''
     # Error handlig for bad sigma values
     if type(sigma)==float:
-        s = sigma        
+        s = sigma
     else:
         try:
             if len(sigma)==2:
@@ -216,10 +226,10 @@ def Ulist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
                 raise IndexError('sigma and lambda_hps params in Ulist_ashbaugh must be float or iterable with 2 values!')
         except:
             print('TypeError: sigma and lambda_hps params in Ulist_ashbaugh must be float or iterable with 2 values!')
-    
+
     # Error handlig for bad lambda_hps values
     if type(lambda_hps)==float:
-        l_hps = lambda_hps 
+        l_hps = lambda_hps
     else:
         try:
             if len(lambda_hps)==2:
@@ -228,18 +238,18 @@ def Ulist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
                 raise IndexError('sigma and lambda_hps params in Ulist_ashbaugh must be float or iterable with 2 values!')
         except:
             print('TypeError: sigma and lambda_hps params in Ulist_ashbaugh must be float or iterable with 2 values!')
-    
+
     r_range = np.linspace(r_min, r_max, n_bins, endpoint=False)
     Ulist = [ U_ashbaugh_hatch(r, s, l_hps, epsilon) for r in r_range ]
-    
+
     return Ulist
-    
+
 
 def Flist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.8368):
     '''
     HPS model:
     Table Ashbaugh-Hatch force for HOOMD3 simulations
-    
+
     F_ashbaugh = - d U_ashbaugh / d r
 
     Parameters
@@ -265,7 +275,7 @@ def Flist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
     '''
     # Error handlig for bad sigma values
     if type(sigma)==float:
-        s = sigma        
+        s = sigma
     else:
         try:
             if len(sigma)==2:
@@ -274,10 +284,10 @@ def Flist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
                 raise IndexError('sigma and lambda_hps params in Flist_ashbaugh must be float or iterable with 2 values!')
         except:
             print('TypeError: sigma and lambda_hps params in Flist_ashbaugh must be float or iterable with 2 values!')
-    
+
     # Error handlig for bad lambda_hps values
     if type(lambda_hps)==float:
-        l_hps = lambda_hps 
+        l_hps = lambda_hps
     else:
         try:
             if len(lambda_hps)==2:
@@ -286,10 +296,10 @@ def Flist_ashbaugh(sigma, lambda_hps, r_max, r_min=0.4, n_bins=100, epsilon=0.83
                 raise IndexError('sigma and lambda_hps params in Flist_ashbaugh must be float or iterable with 2 values!')
         except:
             print('TypeError: sigma and lambda_hps params in Flist_ashbaugh must be float or iterable with 2 values!')
-    
+
     r_range = np.linspace(r_min, r_max, n_bins, endpoint=False)
     Flist = [ F_ashbaugh_hatch(r, s, l_hps, epsilon) for r in r_range ]
-    
+
     return Flist
 
 
