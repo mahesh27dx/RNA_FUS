@@ -33,26 +33,11 @@ current_datetime = ( str(DATETIME.day) + '.' + str(DATETIME.month) + '.' + str(D
 
 ## Input files
 stat_file = 'input_files/stats_module.dat'
-rna_stat_file = 'input_files/rna_stats.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-polyAlength = int(4)
 ##  SIMULATION PARAMETERS
 dt = 0.001
 
 if __name__=='__main__':
-    ## Input parameters for RNA
-    rna_param_dict = hu.rna_stats_from_file(rna_stat_file)
-    rna_type = list(rna_param_dict.keys())
-    rna_mass = []
-    rna_charge = []
-    rna_sigma = []
-    rna_lambda = []
-    for i in rna_type:
-        rna_mass.append(rna_param_dict[i][0])
-        rna_charge.append(rna_param_dict[i][1])
-        rna_sigma.append(rna_param_dict[i][2]/10.) # divide by 10 to consvert angs-> nm
-        rna_lambda.append(rna_param_dict[i][3])
-
     ## Input parameters for all amino acids
     aa_param_dict = hu.aa_stats_from_file(stat_file)
     aa_type = list(aa_param_dict.keys())
@@ -69,13 +54,6 @@ if __name__=='__main__':
     ## Now we can translate the entire sequence into a sequence of numbers and
     # assign to each Amino acid of the sequence its stats
     prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
-    # Add RNA chains
-    rna_bond_length = 0.5
-    for i in range(polyAlength):
-        prot_id.append(len(aa_type)-1)
-        prot_mass.append(329.2)
-        prot_charge.append(-1)
-
     prot_position_array = np.array(prot_position) / 10.
     # prot_position_array = prot_position_array + 8
     prot_length = len(prot_id)
@@ -121,21 +99,12 @@ if __name__=='__main__':
     rigid_2_coord = np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
     position = np.concatenate((pos_chain_1, rigid_1_coord, pos_chain_2, rigid_2_coord,
                                 pos_chain_3), axis=0)
-    snap.particles.N = len(position) + polyAlength
+    snap.particles.N = len(position)
 
-    print(position.shape)
-    # Build initial position of RNA as a linear chain
-    rna_pos = []
-    for i in range(polyAlength):
-        rna_pos.append((5, 0, (i - int(polyAlength/2))*rna_bond_length))
-        # print((i-int(polyAlength/2))*rna_bond_length)
-    rna_pos = np.array(rna_pos)
-    new_pos = np.append(position, rna_pos).reshape(-1,3)
-    print(new_pos.shape)
-    snap.particles.position = new_pos# positions of the free particles and rigid body constituent particles in the system
+    snap.particles.position = position# positions of the free particles and rigid body constituent particles in the system
 
-    
-    snap.particles.types = aa_type + ['R'] + ['Z']  # types of particles, ['R'] and ['Z'] are two rigid bodies
+
+    snap.particles.types = aa_type + ['R'] + ['Z'] # types of particles, ['R'] and ['Z'] are two rigid bodies
 
     mass_chain_1 = prot_mass[:284]
     mass_chain_2 = prot_mass[371:421]
@@ -196,16 +165,16 @@ if __name__=='__main__':
     id_chain_1 = poly_chain_one
     id_chain_2 = prot_id[371:421]
     id_chain_3 = prot_id[453:]
+
     type_id = np.arange(0, len(position))
     prot_id = np.array(prot_id)
+
     type_id[:284] = prot_id[:284]
     type_id[284] = 20
     type_id[285:285+50] = prot_id[371:421]
     type_id[335] = 21
-    print(f"type_id[336:] ::::{len(type_id[336:])}")
-    print(f"type_id[453:] ::::{len(prot_id[453:])}")
-
     type_id[336:] = prot_id[453:]
+
     snap.particles.typeid = type_id
 
     bond_length = 0.381
