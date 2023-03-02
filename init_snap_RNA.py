@@ -307,10 +307,6 @@ if __name__=='__main__':
 
     ## Grouping of the particles
     all_group = hoomd.group.all()
-    # center_group = hoomd.group.rigid_center()
-    # non_rigid_group = hoomd.group.nonrigid()
-    # moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
-
 
     hoomd.dump.gsd('output_files/init_RNA_snap.gsd', period=None, group=all_group, overwrite=True)
 
