@@ -134,7 +134,7 @@ if __name__=='__main__':
 
 
     new_pos = np.append(position, rna_pos).reshape(-1,3)
-    snap.particles.position = new_pos# positions of the free particles and rigid body constituent particles in the system
+    snap.particles.position = new_pos
 
 
     snap.particles.types = aa_type + ['R'] + ['Z']  + rna_type # types of particles, ['R'] and ['Z'] are two rigid bodies
@@ -283,10 +283,9 @@ if __name__=='__main__':
 
     ## Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
-    # system.Add_bonds()
     # no of chains nx=3, ny=3, nz=3=27
     # system.replicate(nx=3, ny=3, nz=3)
-    snapshot = system.make_snapshot()
+    snapshot = system.take_snapshot()
 
     ## Types for the rigid bodies
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
