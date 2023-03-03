@@ -216,17 +216,14 @@ if __name__=='__main__':
 
     bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)
     for i in range(0, len(position) - 1):
-        print('%s-%s-A' % (i, i+1))
+        #print('%s-%s-A' % (i, i+1))
         bond_pairs[i, :] = np.array([i, i+1])
 
     for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
-        print('%s-%s-B' % (i, i+1))
+        #print('%s-%s-B' % (i, i+1))
         bond_pairs[cnt+len(position) - 1, :] = np.array([i, i+1])
-    # exit()
-
+    print(f"Bond pairs:::{bond_pairs}")
     snap.bonds.group = bond_pairs
-
-    # exit()
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2', 'NT_bonds']
 
     ## Type ID's of the polymer chain
@@ -235,30 +232,14 @@ if __name__=='__main__':
     id_chain_1 = poly_chain_one
     # id_chain_2 = prot_id[371:421]
     # id_chain_3 = prot_id[453:]
-    # print(f"The len(position):::{len(position)}")
-    # print(f"The len(new_pos):::{len(new_pos)}")
     type_id = np.arange(0, len(new_pos))
-    # print(f"The type_id before assigning prot_id:::{len(type_id)}")
     prot_id = np.array(prot_id)
 
     type_id[:284] = prot_id[:284]
     type_id[284] = 20
     type_id[285:285+50] = prot_id[371:421]
     type_id[335] = 21
-    # print(len(prot_id))
-    # print(len(type_id))
     type_id[336:409] = prot_id[453:526]
-    # type_id[336:409] = prot_id[453:526]
-    # type_id[405:413] = prot_id[526:530]
-    # print(len(prot_id))
-    # print(len(type_id))
-
-    # print(len(prot_id[526:]))
-    # print(len(type_id[336:]))
-    # exit()
-    # rna_id = np.arange(0, len(rna_pos))
-    # print(len(rna_id))
-    # rna_id = np.array(prot_id[526:])
     type_id[409:] = prot_id[526:]
 
     snap.particles.typeid = type_id
@@ -277,7 +258,7 @@ if __name__=='__main__':
     with gsd.hoomd.open(name='output_files/starting_config_RNA.gsd' , mode='wb') as fout:
         fout.append(snap)
         fout.close()
-
+    
     hoomd.context.initialize("")
 
     ## Read the "starting_config.gsd"
