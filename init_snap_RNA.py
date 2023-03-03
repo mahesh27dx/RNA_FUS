@@ -35,23 +35,23 @@ current_datetime = ( str(DATETIME.day) + '.' + str(DATETIME.month) + '.' + str(D
 stat_file = 'input_files/stats_module.dat'
 rna_stat_file = 'input_files/rna_stats.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-polyAlength = int(4)
+polyAlength = int(50)
 ##  SIMULATION PARAMETERS
 dt = 0.001
 
 if __name__=='__main__':
     ## Input parameters for RNA
-    rna_param_dict = hu.rna_stats_from_file(rna_stat_file)
-    rna_type = list(rna_param_dict.keys())
-    rna_mass = []
-    rna_charge = []
-    rna_sigma = []
-    rna_lambda = []
-    for i in rna_type:
-        rna_mass.append(rna_param_dict[i][0])
-        rna_charge.append(rna_param_dict[i][1])
-        rna_sigma.append(rna_param_dict[i][2]/10.) # divide by 10 to consvert angs-> nm
-        rna_lambda.append(rna_param_dict[i][3])
+    # rna_param_dict = hu.rna_stats_from_file(rna_stat_file)
+    # rna_type = list(rna_param_dict.keys())
+    # rna_mass = []
+    # rna_charge = []
+    # rna_sigma = []
+    # rna_lambda = []
+    # for i in rna_type:
+    #     rna_mass.append(rna_param_dict[i][0])
+    #     rna_charge.append(rna_param_dict[i][1])
+    #     rna_sigma.append(rna_param_dict[i][2]/10.) # divide by 10 to consvert angs-> nm
+    #     rna_lambda.append(rna_param_dict[i][3])
 
     ## Input parameters for all amino acids
     aa_param_dict = hu.aa_stats_from_file(stat_file)
@@ -72,10 +72,13 @@ if __name__=='__main__':
     # Add RNA chains
 
     for i in range(polyAlength):
-        prot_id.append(len(rna_type)-1)
+        # prot_id.append(len(rna_type)-1)
+        prot_id.append(len(aa_type)-1)
         prot_mass.append(329.2)
         prot_charge.append(-1)
-
+    # print(f"The rna_type:::{len(rna_type)-1}")
+    # print(f"The aa_type:::{aa_type}")
+    # exit()
     prot_position_array = np.array(prot_position) / 10.
     # prot_position_array = prot_position_array + 8
     prot_length = len(prot_id)
@@ -117,7 +120,7 @@ if __name__=='__main__':
     rna_bond_length = 0.5
     rna_pos = []
     for i in range(polyAlength):
-        rna_pos.append((5, 0, (i - int(polyAlength/2))*rna_bond_length))
+        rna_pos.append((10, 0, (i - int(polyAlength/2))*rna_bond_length))
         # print((i-int(polyAlength/2))*rna_bond_length)
     rna_pos = np.array(rna_pos)
     print(f"The shape of the RNA_pos::{rna_pos.shape}")
@@ -136,8 +139,9 @@ if __name__=='__main__':
     new_pos = np.append(position, rna_pos).reshape(-1,3)
     snap.particles.position = new_pos
 
-
-    snap.particles.types = aa_type + ['R'] + ['Z']  + rna_type # types of particles, ['R'] and ['Z'] are two rigid bodies
+    # types of particles, ['R'] and ['Z'] are two rigid bodies
+    # snap.particles.types = aa_type + ['R'] + ['Z']  + rna_type
+    snap.particles.types = aa_type + ['R'] + ['Z']
     # print(f"The length of the prot_mass::{len(prot_mass)}")
 
     mass_chain_1 = prot_mass[:284]
@@ -212,13 +216,13 @@ if __name__=='__main__':
 
     bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)
     for i in range(0, len(position) - 1):
-        # print('%s-%s-A' % (i, i+1))
+        print('%s-%s-A' % (i, i+1))
         bond_pairs[i, :] = np.array([i, i+1])
 
     for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
-        # print('%s-%s-B' % (i, i+1))
+        print('%s-%s-B' % (i, i+1))
         bond_pairs[cnt+len(position) - 1, :] = np.array([i, i+1])
-
+    # exit()
 
     snap.bonds.group = bond_pairs
 
@@ -255,19 +259,14 @@ if __name__=='__main__':
     # rna_id = np.arange(0, len(rna_pos))
     # print(len(rna_id))
     # rna_id = np.array(prot_id[526:])
-    type_id[409:413] = prot_id[526:530]
-
-    # print(len(prot_id[:]))
-    # print(len(type_id))
+    type_id[409:] = prot_id[526:]
 
     snap.particles.typeid = type_id
 
-    # for i in range()
     #box_length = bond_length * prot_length + 10
-    #print(box_length)
-    Lx = 20
-    Ly = 20
-    Lz = 20
+    Lx = 100
+    Ly = 100
+    Lz = 150
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
@@ -282,7 +281,7 @@ if __name__=='__main__':
     hoomd.context.initialize("")
 
     ## Read the "starting_config.gsd"
-    system = hoomd.init.read_gsd('output_files/starting_config.gsd')
+    system = hoomd.init.read_gsd('output_files/starting_config_RNA.gsd')
     # no of chains nx=3, ny=3, nz=3=27
     # system.replicate(nx=3, ny=3, nz=3)
     snapshot = system.take_snapshot()
