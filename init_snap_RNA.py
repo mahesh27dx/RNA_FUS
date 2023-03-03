@@ -33,9 +33,9 @@ current_datetime = ( str(DATETIME.day) + '.' + str(DATETIME.month) + '.' + str(D
 
 ## Input files
 stat_file = 'input_files/stats_module.dat'
-rna_stat_file = 'input_files/rna_stats.dat'
+# rna_stat_file = 'input_files/rna_stats.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-polyAlength = int(50)
+polyAlength = int(2)
 ##  SIMULATION PARAMETERS
 dt = 0.001
 
@@ -69,8 +69,8 @@ if __name__=='__main__':
     ## Now we can translate the entire sequence into a sequence of numbers and
     # assign to each Amino acid of the sequence its stats
     prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
+    print(len(prot_id))
     # Add RNA chains
-
     for i in range(polyAlength):
         # prot_id.append(len(rna_type)-1)
         prot_id.append(len(aa_type)-1)
@@ -78,7 +78,8 @@ if __name__=='__main__':
         prot_charge.append(-1)
     # print(f"The rna_type:::{len(rna_type)-1}")
     # print(f"The aa_type:::{aa_type}")
-    # exit()
+    print(len(prot_id))
+
     prot_position_array = np.array(prot_position) / 10.
     # prot_position_array = prot_position_array + 8
     prot_length = len(prot_id)
@@ -124,6 +125,7 @@ if __name__=='__main__':
         # print((i-int(polyAlength/2))*rna_bond_length)
     rna_pos = np.array(rna_pos)
     print(f"The shape of the RNA_pos::{rna_pos.shape}")
+
     pos_chain_1 = prot_position_array[:284].reshape(-1, 3)
     pos_chain_2 = prot_position_array[371:421].reshape(-1, 3)
     pos_chain_3 = prot_position_array[453:].reshape(-1, 3)
@@ -197,32 +199,36 @@ if __name__=='__main__':
 
     ## The number of bonds between the residues
     bond_length = 0.381
+    print(f"The length of the position:::{len(position)}")
 
-    bonds = np.empty((0, 2), dtype=int)
+    poly_bonds = np.empty((0, 2), dtype=int)
     for i in range(len(position) - 1):
-        bonds = np.append(bonds, [[i, i+1]], axis=0)
-
+        poly_bonds = np.append(poly_bonds, [[i, i+1]], axis=0)
+    print(f"The length of the poly_bonds::{len(poly_bonds)}")
 
     rna_bonds = np.empty((0, 2), dtype=int)
     for i in range(polyAlength - 1):
         rna_bonds = np.append(rna_bonds, [[i, i+1]], axis=0)
+    print(f"The length of rna_bonds:::{len(rna_bonds)}")
 
-    new_bonds = np.append(bonds, rna_bonds).reshape(-1,2)
-    print(f"The shape of the bonds:::{bonds.shape}")
+    new_bonds = np.append(poly_bonds, rna_bonds).reshape(-1,2)
+    print(f"The shape of the bonds:::{new_bonds.shape}")
     print(f"The shape of the rna_bonds:::{rna_bonds.shape}")
     print(f"The shape of the new_bonds:::{new_bonds.shape}")
-
+    print(f"The length of the new_bonds:::{len(new_bonds)}")
     snap.bonds.N = len(new_bonds)
 
-    bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)
-    for i in range(0, len(position) - 1):
-        #print('%s-%s-A' % (i, i+1))
+    bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)# 411
+
+    for i in range(0, len(position)-1):
+        print('%s-%s-A' % (i, i+1))
         bond_pairs[i, :] = np.array([i, i+1])
 
     for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
-        #print('%s-%s-B' % (i, i+1))
-        bond_pairs[cnt+len(position) - 1, :] = np.array([i, i+1])
-    print(f"Bond pairs:::{bond_pairs}")
+        print('%s-%s-B' % (i, i+1))
+        bond_pairs[len(position)-1, :] = np.array([i, i+1])
+    # exit()
+    print(f"Bond pairs length:::{bond_pairs}")
     snap.bonds.group = bond_pairs
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2', 'NT_bonds']
 
@@ -230,8 +236,6 @@ if __name__=='__main__':
     poly_chain_one = prot_id[:284]
     # id_chain_1 = prot_id[:284]
     id_chain_1 = poly_chain_one
-    # id_chain_2 = prot_id[371:421]
-    # id_chain_3 = prot_id[453:]
     type_id = np.arange(0, len(new_pos))
     prot_id = np.array(prot_id)
 
@@ -258,7 +262,7 @@ if __name__=='__main__':
     with gsd.hoomd.open(name='output_files/starting_config_RNA.gsd' , mode='wb') as fout:
         fout.append(snap)
         fout.close()
-    
+
     hoomd.context.initialize("")
 
     ## Read the "starting_config.gsd"
@@ -270,6 +274,7 @@ if __name__=='__main__':
     ## Types for the rigid bodies
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
     type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
+
 
     rigid = hoomd.md.constrain.rigid()
 
@@ -284,6 +289,7 @@ if __name__=='__main__':
                     positions = relative_pos_rigid_2)
 
     rigid.create_bodies()
+
 
     ## Grouping of the particles
     all_group = hoomd.group.all()
