@@ -111,8 +111,8 @@ type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
 type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
 
 # Read the "starting_config.gsd"
-# system = hoomd.init.read_gsd('output_files/init_RNA_snap.gsd')
-system = hoomd.init.read_gsd('output_files/starting_config_RNA.gsd')
+system = hoomd.init.read_gsd('output_files/init_RNA_snap.gsd')
+# system = hoomd.init.read_gsd('output_files/starting_config_RNA.gsd')
 
 rigid = hoomd.md.constrain.rigid()
 

@@ -176,6 +176,7 @@ if __name__=='__main__':
     MOI_rna = np.zeros((len(prot_charge[526:]), 3), dtype=float)
     moment_inertia = np.concatenate((MOI_chain_1, I_diag_rigid_1, MOI_chain_2,
                                     I_diag_rigid_2, MOI_chain_3, MOI_rna), axis=0)
+
     snap.particles.moment_inertia = moment_inertia
 
     ## Orientation of the system
@@ -212,25 +213,31 @@ if __name__=='__main__':
     print(f"The length of rna_bonds:::{len(rna_bonds)}")
 
     new_bonds = np.append(poly_bonds, rna_bonds).reshape(-1,2)
+    nbonds = len(new_bonds)
     print(f"The shape of the bonds:::{new_bonds.shape}")
     print(f"The shape of the rna_bonds:::{rna_bonds.shape}")
     print(f"The shape of the new_bonds:::{new_bonds.shape}")
     print(f"The length of the new_bonds:::{len(new_bonds)}")
-    snap.bonds.N = len(new_bonds)
+    snap.bonds.N = nbonds
 
-    bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)# 411
+    bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)
 
     for i in range(0, len(position)-1):
         print('%s-%s-A' % (i, i+1))
         bond_pairs[i, :] = np.array([i, i+1])
 
-    for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
+    # for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
+    #     print('%s-%s-B' % (i, i+1))
+    #     bond_pairs[len(position)-1, :] = np.array([i, i+1])
+    for i in range(len(position), len(new_bonds)+1):
         print('%s-%s-B' % (i, i+1))
-        bond_pairs[len(position)-1, :] = np.array([i, i+1])
+        bond_pairs[len(position)-1,:] = np.array([i,i+1])
     # exit()
-    print(f"Bond pairs length:::{bond_pairs}")
+    # print(f"Bond pairs length:::{bond_pairs}")
+
     snap.bonds.group = bond_pairs
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2', 'NT_bonds']
+    snap.bonds.typeid = [0]* nbonds
 
     ## Type ID's of the polymer chain
     poly_chain_one = prot_id[:284]
@@ -243,6 +250,7 @@ if __name__=='__main__':
     type_id[284] = 20
     type_id[285:285+50] = prot_id[371:421]
     type_id[335] = 21
+    # type_id[336:] = prot_id[453:528]
     type_id[336:409] = prot_id[453:526]
     type_id[409:] = prot_id[526:]
 
@@ -258,7 +266,8 @@ if __name__=='__main__':
     snap.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
     snap.configuration.step = 0
 
-    ## Write the snapshot to the file
+
+    # Write the snapshot to the file
     with gsd.hoomd.open(name='output_files/starting_config_RNA.gsd' , mode='wb') as fout:
         fout.append(snap)
         fout.close()
@@ -269,9 +278,12 @@ if __name__=='__main__':
     system = hoomd.init.read_gsd('output_files/starting_config_RNA.gsd')
     # no of chains nx=3, ny=3, nz=3=27
     # system.replicate(nx=3, ny=3, nz=3)
-    snapshot = system.take_snapshot()
+    snapshot = system.take_snapshot(bonds=True, pairs=True)
 
     ## Types for the rigid bodies
+    # type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
+    # type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
+
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
     type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
 
@@ -296,4 +308,4 @@ if __name__=='__main__':
 
     hoomd.dump.gsd('output_files/init_RNA_snap.gsd', period=None, group=all_group, overwrite=True)
 
-    hoomd.run(0)
+    hoomd.run(1)
