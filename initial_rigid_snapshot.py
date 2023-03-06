@@ -38,6 +38,8 @@ filein_FUS = 'input_files/calpha_FUS.pdb'
 dt = 0.001
 
 if __name__=='__main__':
+
+
     ## Input parameters for all amino acids
     aa_param_dict = hu.aa_stats_from_file(stat_file)
     aa_type = list(aa_param_dict.keys())
@@ -88,8 +90,12 @@ if __name__=='__main__':
                                     [rigid_1_coord_3]], [[rigid_2_coord_1],
                                     [rigid_2_coord_2], [rigid_2_coord_3]]).reshape(-1, 3)
 
+
+
     ## Build a HOOMD snapshot of the system
+
     snap = gsd.hoomd.Snapshot()
+    # snap = hoomd.data.make_snapshot()
 
     pos_chain_1 = prot_position_array[:284].reshape(-1, 3)
     pos_chain_2 = prot_position_array[371:421].reshape(-1, 3)
@@ -167,7 +173,19 @@ if __name__=='__main__':
     id_chain_3 = prot_id[453:]
 
     type_id = np.arange(0, len(position))
+    print(type_id)
     prot_id = np.array(prot_id)
+
+    # type_id[0] = 20
+    # type_id[1] = 21
+    #
+    # type_id[119:285] = prot_id[119:285]
+    #
+    # type_id[285:285+50] = prot_id[371:421]
+    #
+    # type_id[335:] = prot_id[452:]
+    # print(len(type_id[335:]) == len(prot_id[452:]))
+    # exit()
 
     type_id[:284] = prot_id[:284]
     type_id[284] = 20
@@ -182,53 +200,47 @@ if __name__=='__main__':
     # for i in range()
     #box_length = bond_length * prot_length + 10
     #print(box_length)
-    Lx = 20
-    Ly = 20
-    Lz = 20
+    Lx = 60
+    Ly = 60
+    Lz = 100
 
     ## Dimensions of the box
     snap.configuration.dimensions = 3
     snap.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
     snap.configuration.step = 0
 
-    ## Write the snapshot to the file
-    with gsd.hoomd.open(name='output_files/starting_config.gsd' , mode='wb') as fout:
+    ## Types for the rigid bodies
+    type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
+    type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
+    # type_rigid_1 = [aa_type[prot_id[i]] for i in range(0, 87)]
+    # type_rigid_2 = [aa_type[prot_id[i]] for i in range(87, 119)]
+    # print(len(type_rigid_2))
+    # exit()
+
+    with gsd.hoomd.open(name='output_files/starting_config.gsd', mode='wb') as fout:
         fout.append(snap)
         fout.close()
 
     hoomd.context.initialize("")
-
-    ## Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
-    # no of chains nx=3, ny=3, nz=3=27
-    # system.replicate(nx=3, ny=3, nz=3)
-    snapshot = system.take_snapshot()
-
-    ## Types for the rigid bodies
-    type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
-    type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
+    #no of chains nx=3, ny=3, nz=3=27
+    system.replicate(nx=3, ny=3, nz=3)
 
     rigid = hoomd.md.constrain.rigid()
-
     ## First rigid body
     rigid.set_param('R',
-                    types = type_rigid_1,
-                    positions = relative_pos_rigid_1)
+                types = type_rigid_1,
+                positions = relative_pos_rigid_1)
 
-    ## Second rigid body
     rigid.set_param('Z',
-                    types = type_rigid_2,
-                    positions = relative_pos_rigid_2)
+                types = type_rigid_2,
+                positions = relative_pos_rigid_2)
 
     rigid.create_bodies()
 
     ## Grouping of the particles
     all_group = hoomd.group.all()
-    # center_group = hoomd.group.rigid_center()
-    # non_rigid_group = hoomd.group.nonrigid()
-    # moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
-
 
     hoomd.dump.gsd('output_files/FUS_initial_snapshot.gsd', period=None, group=all_group, overwrite=True)
 
-    hoomd.run(0)
+    hoomd.run(1)

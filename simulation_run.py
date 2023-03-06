@@ -45,7 +45,6 @@ args = parser.parse_args()
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
 
-
 dt = args.dt
 simulation_steps = args.time
 # equilibration_steps = 1000
@@ -185,7 +184,7 @@ ld.set_gamma('R', gamma=aa_mass[i]/1000.0)
 ld.set_gamma('Z', gamma=aa_mass[i]/1000.0)
 
 #print(snap.particles.position)
-hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group, overwrite=True)
+hoomd.dump.gsd('output_files/FUS_dump' + '_' + str(T) + '.gsd', period=period, group=all_group, dynamic=['momentum'], overwrite=True)
 ## Look at the unwrap_rigid variable for the .dcd dump
 # hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group, overwrite=True)
 

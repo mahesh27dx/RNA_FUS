@@ -42,7 +42,7 @@ parser.add_argument('-temp' ,'--temp', type=int, help='temperature for the curre
 parser.add_argument('-period', '--period', type=int, help='number of time steps between file dumps.')
 args = parser.parse_args()
 
-stat_file = 'input_files/stats_module.dat'
+stat_file = 'input_files/stats_module_RNA.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
 
 
@@ -55,7 +55,7 @@ period = args.period
 k_B = 1.38064852e-23                 # boltzmann constant [J/K]
 N_A = 6.02214076e23                  # Avogadro constant [1/mol]
 epsilon_in_kcal_mol = 0.2            # energy unit [kcal/mol]: 1epsilon = 0.2 kcal/mol
-
+rna_length = int(2)
 # Input parameters for all amino acids
 aa_param_dict = hu.aa_stats_from_file(stat_file)
 aa_type = list(aa_param_dict.keys())
@@ -73,12 +73,22 @@ for i in aa_type:
 ## Now we can translate the entire sequence into a sequence of numbers and
 # assign to each Amino acid of the sequence its stats
 prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
-prot_id = np.array(prot_id)
+# prot_id = np.array(prot_id)
 prot_position_array = np.array(prot_position) / 10.
 # prot_position_array = prot_position_array + 8
 prot_length = len(prot_id)
 prot_total_mass = np.sum(prot_mass)
 prot_mass_arr = np.array(prot_mass)
+
+# Add RNA chains
+for i in range(rna_length):
+    # prot_id.append(len(rna_type)-1)
+    prot_id.append(len(aa_type)-1)
+    prot_mass.append(329.2)
+    prot_charge.append(-1)
+# print(f"The rna_type:::{len(rna_type)-1}")
+# print(f"The aa_type:::{aa_type}")
+print(len(prot_id))
 
 # Relative positions of the constituent particles of the two rigid bodies
 ### First rigid body relative position and moment of inertia
@@ -86,7 +96,6 @@ rigid_1_coord_1 = np.sum(prot_position_array[284:371, 0] * prot_mass[284:371]) /
 rigid_1_coord_2 = np.sum(prot_position_array[284:371, 1] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
 rigid_1_coord_3 = np.sum(prot_position_array[284:371, 2] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
 relative_pos_rigid_1 = prot_position_array[284:371] - np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
-relative_pos_rigid_1 = relative_pos_rigid_1
 
 I_general_rigid_1 = hu.protein_moment_inertia(relative_pos_rigid_1, prot_mass[284:371]) # Moment of inertia
 I_diag_rigid_1, E_vec_rigid_1 = np.linalg.eig(I_general_rigid_1)
@@ -97,7 +106,6 @@ rigid_2_coord_1 = np.sum(prot_position_array[421:453, 0] * prot_mass[421:453]) /
 rigid_2_coord_2 = np.sum(prot_position_array[421:453, 1] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
 rigid_2_coord_3 = np.sum(prot_position_array[421:453, 2] * prot_mass[421:453]) / np.sum(prot_mass[421:453])
 relative_pos_rigid_2 = prot_position_array[421:453] - np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
-relative_pos_rigid_2 = relative_pos_rigid_2
 
 I_general_rigid_2 = hu.protein_moment_inertia(relative_pos_rigid_2, prot_mass[421:453])
 I_diag_rigid_2, E_vec_rigid_2 = np.linalg.eig(I_general_rigid_2)
@@ -126,8 +134,8 @@ rigid.set_param('Z',
                 types = type_rigid_2,
                 positions = relative_pos_rigid_2)
 
-# rigid.create_bodies(create=False)
-rigid.create_bodies()
+rigid.create_bodies(create=False)
+# rigid.create_bodies()
 
 # system.replicate(nx=nx, ny=ny, nz=nz)
 snapshot = system.take_snapshot()
@@ -191,10 +199,10 @@ hoomd.dump.gsd('output_files/RNA_FUS_dump' + '_' + str(T) + '.gsd', period=perio
 ## Look at the unwrap_rigid variable for the .dcd dump
 # hoomd.dump.dcd('output_files/FUS_dump' + '_' + str(T) + '.dcd', period=period, group=all_group, overwrite=True)
 
-hoomd.analyze.log(filename='output_files/energies' + '_' + str(T) + '.log',
+hoomd.analyze.log(filename='output_files/energies_rna' + '_' + str(T) + '.log',
                   quantities=['temperature', 'potential_energy', 'kinetic_energy'],
                   period=period, overwrite=True)
-hoomd.analyze.log(filename='output_files/pressure' + '_' + str(T) + '.log',
+hoomd.analyze.log(filename='output_files/pressure_rna' + '_' + str(T) + '.log',
                   quantities=['pressure', 'pressure_xx', 'pressure_yy', 'pressure_zz',
                   'pressure_xy', 'pressure_xz', 'pressure_yz'], period=period, overwrite=True)
 
