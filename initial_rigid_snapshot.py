@@ -37,6 +37,13 @@ filein_FUS = 'input_files/calpha_FUS.pdb'
 ##  SIMULATION PARAMETERS
 dt = 0.001
 
+bond_length = 0.381
+#box_length = bond_length * prot_length + 10
+#print(box_length)
+Lx = 60
+Ly = 60
+Lz = 100
+
 if __name__=='__main__':
 
 
@@ -59,6 +66,8 @@ if __name__=='__main__':
     prot_position_array = np.array(prot_position) / 10.
     # prot_position_array = prot_position_array + 8
     prot_length = len(prot_id)
+    print(len(prot_position_array))
+    # exit()
     prot_total_mass = np.sum(prot_mass)
     prot_mass_arr = np.array(prot_mass)
 
@@ -85,17 +94,9 @@ if __name__=='__main__':
     I_diag_rigid_2, E_vec_rigid_2 = np.linalg.eig(I_general_rigid_2)
     I_diag_rigid_2 = I_diag_rigid_2.reshape(-1, 3)
 
-    ## Position vectors of two rigid bodies
-    relative_pos_rigid = np.append([[rigid_1_coord_1], [rigid_1_coord_2],
-                                    [rigid_1_coord_3]], [[rigid_2_coord_1],
-                                    [rigid_2_coord_2], [rigid_2_coord_3]]).reshape(-1, 3)
-
-
 
     ## Build a HOOMD snapshot of the system
-
     snap = gsd.hoomd.Snapshot()
-    # snap = hoomd.data.make_snapshot()
 
     pos_chain_1 = prot_position_array[:284].reshape(-1, 3)
     pos_chain_2 = prot_position_array[371:421].reshape(-1, 3)
@@ -104,9 +105,13 @@ if __name__=='__main__':
     rigid_1_coord = np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
     rigid_2_coord = np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
     position = np.concatenate((pos_chain_1, rigid_1_coord, pos_chain_2, rigid_2_coord,
-                                pos_chain_3), axis=0)
-    snap.particles.N = len(position)
+                               pos_chain_3), axis=0)
 
+    print(len(rigid_1_coord))
+    print(len(rigid_2_coord))
+    snap.particles.N = len(position)
+    print(len(position))
+    # exit()
     snap.particles.position = position# positions of the free particles and rigid body constituent particles in the system
 
 
@@ -161,31 +166,20 @@ if __name__=='__main__':
     bonds = np.empty((0, 2), dtype=int)
     for i in range(len(position) - 1):
         bonds = np.append(bonds, [[i, i+1]], axis=0)
+
+    # print(bonds)
+    # new_bond = np.empty(0, dtype=int)
+    # new_bond = np.append(new_bond, [284, 286], axis=0)
+    # bonds = np.append(bonds, [new_bond], axis=0)
+    # exit()
     snap.bonds.group = bonds
     snap.bonds.N = len(bonds)
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2']
 
     ## Type ID's of the polymer chain
-    poly_chain_one = prot_id[:284]
-    # id_chain_1 = prot_id[:284]
-    id_chain_1 = poly_chain_one
-    id_chain_2 = prot_id[371:421]
-    id_chain_3 = prot_id[453:]
-
     type_id = np.arange(0, len(position))
     print(type_id)
     prot_id = np.array(prot_id)
-
-    # type_id[0] = 20
-    # type_id[1] = 21
-    #
-    # type_id[119:285] = prot_id[119:285]
-    #
-    # type_id[285:285+50] = prot_id[371:421]
-    #
-    # type_id[335:] = prot_id[452:]
-    # print(len(type_id[335:]) == len(prot_id[452:]))
-    # exit()
 
     type_id[:284] = prot_id[:284]
     type_id[284] = 20
@@ -195,15 +189,6 @@ if __name__=='__main__':
 
     snap.particles.typeid = type_id
 
-    bond_length = 0.381
-
-    # for i in range()
-    #box_length = bond_length * prot_length + 10
-    #print(box_length)
-    Lx = 60
-    Ly = 60
-    Lz = 100
-
     ## Dimensions of the box
     snap.configuration.dimensions = 3
     snap.configuration.box = [Lx, Ly, Lz, 0, 0, 0]
@@ -212,9 +197,8 @@ if __name__=='__main__':
     ## Types for the rigid bodies
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
     type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
-    # type_rigid_1 = [aa_type[prot_id[i]] for i in range(0, 87)]
-    # type_rigid_2 = [aa_type[prot_id[i]] for i in range(87, 119)]
-    # print(len(type_rigid_2))
+    print(type_rigid_1)
+    print(type_rigid_2)
     # exit()
 
     with gsd.hoomd.open(name='output_files/starting_config.gsd', mode='wb') as fout:
@@ -223,8 +207,9 @@ if __name__=='__main__':
 
     hoomd.context.initialize("")
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
+    # system.bonds.add('rigid_1', 28, 4)
     #no of chains nx=3, ny=3, nz=3=27
-    system.replicate(nx=3, ny=3, nz=3)
+    #system.replicate(nx=3, ny=3, nz=3)
 
     rigid = hoomd.md.constrain.rigid()
     ## First rigid body
