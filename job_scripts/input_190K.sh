@@ -5,9 +5,9 @@
 #SBATCH -p m2_gpu           # Partition name
 #SBATCH -c 16
 #SBATCH -n 1                # Total number of tasks
-#SBATCH -t 118:00:00         # Run time (hh:mm:ss)
+#SBATCH -t 120:00:00         # Run time (hh:mm:ss)
 #SBATCH -A m2_komet331hpc   # Specify allocation to charge against
-#SBATCH --mem=20G           # Memory allocation
+#SBATCH --mem=8G           # Memory allocation
 
 timestart=$(date +"%s")
 #### LOAD MODULES ########
@@ -15,7 +15,7 @@ timestart=$(date +"%s")
 #. /home/yadavmah/binaries/env/bin/activate
 module load system/CUDA/11.1.1-GCC-10.2.0
 
-srun python3 simulation_run.py -dt="0.001" -time="10000000" -temp="190"  #input/FUS_LC.dat $i
+srun python3 simulation_run.py -dt="0.001" -time="10000000" -temp="190" -period="10000" #input/FUS_LC.dat $i
 
 
 timeend=$(date +"%s")

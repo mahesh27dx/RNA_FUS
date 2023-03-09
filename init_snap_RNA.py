@@ -29,17 +29,17 @@ current_datetime = ( str(DATETIME.day) + '.' + str(DATETIME.month) + '.' + str(D
 #     f.close()
 
 ## Input files
-stat_file = 'input_files/stats_module_RNA.dat'
+stat_file = 'input_files/stats_module.dat'
 stat_rna = 'input_files/rna_stats.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-rna_length = int(4)
+rna_length = int(5)
 #box_length = bond_length * prot_length + 10
-Lx = 200
-Ly = 200
+Lx = 300
+Ly = 300
 Lz = 450
 box_length = Lx * Ly * Lz
-dt = 0.001
-T = 300
+# dt = 0.001
+# T = 300
 
 if __name__=='__main__':
     ## Input parameters for all amino acids
@@ -75,12 +75,7 @@ if __name__=='__main__':
     prot_length = len(prot_id)
     prot_total_mass = np.sum(prot_mass)
     prot_mass_arr = np.array(prot_mass)
-    # print(len(aa_type))
-    # print(len(prot_id))
-    # for i in range(rna_length):
-    #     prot_id.insert(0, len(aa_type)-20)
-    print(prot_id)
-    # exit()
+
     # Add RNA chains
     rna_id = []
     for i in range(rna_length):
@@ -89,8 +84,7 @@ if __name__=='__main__':
         prot_charge.append(-1)
     # print(f"The rna_type:::{len(rna_type)-1}")
     # print(f"The aa_type:::{aa_type}")
-    print(rna_id)
-    # exit()
+
     # Relative positions of the constituent particles of the two rigid bodies
     ### First rigid body relative position and moment of inertia
     rigid_1_coord_1 = np.sum(prot_position_array[284:371, 0] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
@@ -134,16 +128,18 @@ if __name__=='__main__':
     position = np.concatenate((pos_chain_1, rigid_1_coord, pos_chain_2, rigid_2_coord,
                                 pos_chain_3), axis=0)
     new_pos = np.append(position, rna_pos).reshape(-1,3) # append order can be changed to (rna_pos, position)
-    print(f"The shape of the new_position:::{new_pos[1]}")
-    # exit()
+    # print(f"The shape of the new_position:::{new_pos[1]}")
+
     ## The number of bonds between the residues
     bond_length = 0.381
-    # print(f"The length of the position:::{len(position)}")
+    print(f"The length of the position:::{len(position)}")
+    exit()
     poly_bonds = np.empty((0, 2), dtype=int)
     for i in range(len(position) - 1):
         poly_bonds = np.append(poly_bonds, [[i, i+1]], axis=0)
     # print(f"The length of the poly_bonds::{poly_bonds}")
     print("#######################")
+
     # rna_bonds = np.empty((0, 2), dtype=int)
     # for i in range(len(poly_bonds) - 1):
     #     rna_bonds = np.append(rna_bonds, [[i, i+1]], axis=0)
@@ -155,6 +151,8 @@ if __name__=='__main__':
     print(f"The length of rna_bonds:::{len(rna_bonds)}")
 
     new_bonds = np.append(poly_bonds, rna_bonds).reshape(-1,2)
+    print(new_bonds)
+
     nbonds = len(new_bonds)
 
     bond_pairs = np.zeros((len(new_bonds), 2), dtype=int)
@@ -167,32 +165,29 @@ if __name__=='__main__':
     #     bond_pairs[len(position)-1, :] = np.array([i, i+1])
     # bond_pairs_rna = np.zeros((len(bond_pairs_prot), 2), dtype=int)
     # print(bond_pairs_rna.shape)
-    print(len(position))
-    print(len(new_bonds))
+
     for i in range(len(position), len(new_bonds)+1):
-        print('%s-%s-B' % (i, i+1))
+        # print('%s-%s-B' % (i, i+1))
         # bond_pairs_rna[len(position)-1,:] = np.array([i,i+1])
         bond_pairs[i-1,:] = np.array([i,i+1])
-    # print(len(bond_pairs_rna))
 
-    # bond_pairs = np.append(bond_pairs_prot, bond_pairs_rna).reshape(-1,2)
-    print(f"Bond pairs length:::{bond_pairs}")
+    # print(bond_pairs)
     # exit()
-
     # Type ID's of the polymer chain
     type_id = np.arange(0, len(new_pos))
     prot_id = np.array(prot_id)
     # print(f"The shape of the prot_id::{prot_id.shape}")
     # print(f"The shape of the type_id::{type_id.shape}")
     type_id[:284] = prot_id[:284]
+    print(f"prot_id of the particle 284::{prot_id[284]}")
+    print(f"prot_id of the particle 285::{prot_id[285]}")
+    print(f"prot_id of the particle 286::{prot_id[286]}")
+    exit()
     type_id[284] = 20
     type_id[285:285+50] = prot_id[371:421]
     type_id[335] = 21
     type_id[336:409] = prot_id[453:526]
-    # type_id[409:] = prot_id[526:]
     type_id[409:] = rna_id[:]
-    # print(f"Type_ids:::{type_id}")
-    # exit()
 
     # Mass of the system
     mass_chain_1 = prot_mass[:284]
@@ -270,9 +265,9 @@ if __name__=='__main__':
     ## Read the "starting_config.gsd"
     system = hoomd.init.read_gsd('output_files/starting_config_RNA.gsd')
     # no of chains nx=3, ny=3, nz=3=27
-    # system.replicate(nx=3, ny=3, nz=3)
+    system.replicate(nx=3, ny=3, nz=3)
     snapshot = system.take_snapshot(bonds=True, pairs=True)
-
+    # system.bonds.add('AA_bond', 283, 284)
     # Types for the rigid bodies
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
     type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
@@ -294,12 +289,6 @@ if __name__=='__main__':
 
     ## Grouping of the particles
     all_group = hoomd.group.all()
-    # center_group =hoomd.group.rigid_center()
-    # non_rigid_group = hoomd.group.nonrigid()
-    # moving_group = hoomd.group.union('moving_group', center_group, non_rigid_group)
-    #
-    # hoomd.md.integrate.mode_standard(dt=dt)
-    # ld = hoomd.md.integrate.langevin(group=moving_group, kT=T, seed=399)
 
     hoomd.dump.gsd('output_files/init_RNA_snap.gsd', period=1, group=all_group, overwrite=True)
 

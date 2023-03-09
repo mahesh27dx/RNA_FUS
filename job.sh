@@ -3,7 +3,7 @@
 timestart=$(date +"%s")
 
 #python3 simulation_run.py -dt="0.001" -time="10000" -temp="300" -period="100"
-python3 rna_sim_run.py -dt="0.001" -time="10000" -temp="300" -period="100"
+python3 rna_sim_run.py -dt="0.001" -time="100000" -temp="310" -period="100"
 
 
 timeend=$(date +"%s")

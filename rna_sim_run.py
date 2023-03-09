@@ -44,7 +44,7 @@ args = parser.parse_args()
 
 stat_file = 'input_files/stats_module_RNA.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-
+stat_rna = 'input_files/rna_stats.dat'
 
 dt = args.dt
 simulation_steps = args.time
@@ -55,7 +55,7 @@ period = args.period
 k_B = 1.38064852e-23                 # boltzmann constant [J/K]
 N_A = 6.02214076e23                  # Avogadro constant [1/mol]
 epsilon_in_kcal_mol = 0.2            # energy unit [kcal/mol]: 1epsilon = 0.2 kcal/mol
-rna_length = int(2)
+rna_length = int(5)
 # Input parameters for all amino acids
 aa_param_dict = hu.aa_stats_from_file(stat_file)
 aa_type = list(aa_param_dict.keys())
