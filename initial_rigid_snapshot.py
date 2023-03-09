@@ -64,10 +64,7 @@ if __name__=='__main__':
     # assign to each Amino acid of the sequence its stats
     prot_id, prot_mass, prot_charge, prot_sigma, prot_position = hu.aa_stats_sequence(filein_FUS, aa_param_dict)
     prot_position_array = np.array(prot_position) / 10.
-    # prot_position_array = prot_position_array + 8
     prot_length = len(prot_id)
-    print(len(prot_position_array))
-    # exit()
     prot_total_mass = np.sum(prot_mass)
     prot_mass_arr = np.array(prot_mass)
 
@@ -78,7 +75,8 @@ if __name__=='__main__':
     rigid_1_coord_3 = np.sum(prot_position_array[284:371, 2] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
     relative_pos_rigid_1 = prot_position_array[284:371] - np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
     relative_pos_rigid_1 = relative_pos_rigid_1
-
+    print(len(prot_position_array[421:453]))
+    # exit()
     I_general_rigid_1 = hu.protein_moment_inertia(relative_pos_rigid_1, prot_mass[284:371]) # Moment of inertia
     I_diag_rigid_1, E_vec_rigid_1 = np.linalg.eig(I_general_rigid_1)
     I_diag_rigid_1 = I_diag_rigid_1.reshape(-1, 3)
@@ -106,12 +104,7 @@ if __name__=='__main__':
     rigid_2_coord = np.array([[rigid_2_coord_1, rigid_2_coord_2, rigid_2_coord_3]])
     position = np.concatenate((pos_chain_1, rigid_1_coord, pos_chain_2, rigid_2_coord,
                                pos_chain_3), axis=0)
-
-    print(len(rigid_1_coord))
-    print(len(rigid_2_coord))
     snap.particles.N = len(position)
-    print(len(position))
-    # exit()
     snap.particles.position = position# positions of the free particles and rigid body constituent particles in the system
 
 
@@ -163,15 +156,31 @@ if __name__=='__main__':
     snap.particles.body = body
 
     ## The number of bonds between the residues
+    print(len(position))
+    bonds_chain_1 = np.empty((0, 2), dtype=int)
+    print(f"The size of the bonds in chain 1 is :::{bonds_chain_1.shape}")
+    print(f"The length of the bonds in chain 1 is :::{len(bonds_chain_1)}")
+    # exit()
+    bonds_chain_2 = np.empty((0, 2), dtype=int)
+    bonds_chain_3 = np.empty((0, 2), dtype=int)
+    # for i in range(len(position[:284]) - 1):
+    #     bonds_chain_1 = np.append(bonds_chain_1, [[i, i+1]], axis=0)
+    # # print(bonds_chain_1)
+    #
+    # # for i in range(len(bonds_chain_1), len(position[371:421]) - 1):
+    # for i in range(len(position[371:421]) - 1):
+    #     bonds_chain_2 = np.append(bonds_chain_2, [[i, i+1]], axis=0)
+    # print(bonds_chain_2)
+    # exit()
+    #
+    # for i in range(len(position[371:421]) - 1):
+    #     bonds_chain_2 = np.append(bonds_chain_2, [[i, i+1]], axis=0)
+    # print(bonds_chain_2)
+    # exit()
     bonds = np.empty((0, 2), dtype=int)
     for i in range(len(position) - 1):
-        bonds = np.append(bonds, [[i, i+1]], axis=0)
+        bonds = np.append(bonds, [[i, i + 1]], axis=0)
 
-    # print(bonds)
-    # new_bond = np.empty(0, dtype=int)
-    # new_bond = np.append(new_bond, [284, 286], axis=0)
-    # bonds = np.append(bonds, [new_bond], axis=0)
-    # exit()
     snap.bonds.group = bonds
     snap.bonds.N = len(bonds)
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2']
@@ -209,7 +218,7 @@ if __name__=='__main__':
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
     # system.bonds.add('rigid_1', 28, 4)
     #no of chains nx=3, ny=3, nz=3=27
-    #system.replicate(nx=3, ny=3, nz=3)
+    # system.replicate(nx=3, ny=3, nz=3)
 
     rigid = hoomd.md.constrain.rigid()
     ## First rigid body
@@ -223,6 +232,15 @@ if __name__=='__main__':
 
     rigid.create_bodies()
 
+    system.bonds.add('AA_bond', 283, 409)
+    system.bonds.add('AA_bond', 495, 285)
+    system.bonds.remove(283)
+    system.bonds.remove(284)
+    system.bonds.add('AA_bond', 334, 496)
+    system.bonds.remove(334)
+    system.bonds.remove(335)
+    system.bonds.add('AA_bond', 336, 527)
+    system.replicate(nx=3, ny=3, nz=3)
     ## Grouping of the particles
     all_group = hoomd.group.all()
 
