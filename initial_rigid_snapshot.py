@@ -34,8 +34,6 @@ current_datetime = ( str(DATETIME.day) + '.' + str(DATETIME.month) + '.' + str(D
 ## Input files
 stat_file = 'input_files/stats_module.dat'
 filein_FUS = 'input_files/calpha_FUS.pdb'
-##  SIMULATION PARAMETERS
-dt = 0.001
 
 bond_length = 0.381
 #box_length = bond_length * prot_length + 10
@@ -45,8 +43,6 @@ Ly = 60
 Lz = 100
 
 if __name__=='__main__':
-
-
     ## Input parameters for all amino acids
     aa_param_dict = hu.aa_stats_from_file(stat_file)
     aa_type = list(aa_param_dict.keys())
@@ -75,7 +71,7 @@ if __name__=='__main__':
     rigid_1_coord_3 = np.sum(prot_position_array[284:371, 2] * prot_mass[284:371]) / np.sum(prot_mass[284:371])
     relative_pos_rigid_1 = prot_position_array[284:371] - np.array([[rigid_1_coord_1, rigid_1_coord_2, rigid_1_coord_3]])
     relative_pos_rigid_1 = relative_pos_rigid_1
-    print(len(prot_position_array[421:453]))
+    # print(len(prot_position_array[421:453]))
     # exit()
     I_general_rigid_1 = hu.protein_moment_inertia(relative_pos_rigid_1, prot_mass[284:371]) # Moment of inertia
     I_diag_rigid_1, E_vec_rigid_1 = np.linalg.eig(I_general_rigid_1)
@@ -141,8 +137,6 @@ if __name__=='__main__':
     orien_chain_1 = np.zeros((len(prot_charge[:284]), 4), dtype=float)
     orien_chain_2 = np.zeros((len(prot_charge[371:421]), 4), dtype=float)
     orien_chain_3 = np.zeros((len(prot_charge[453:]), 4), dtype=float)
-    # orien_rigid_1 = np.array([[0, 1, 1, 1]])
-    # orien_rigid_2 = np.array([[0, 1, 1, 1]])
     orien_rigid_1 = np.array([[1, 0, 0, 0]])
     orien_rigid_2 = np.array([[1, 0, 0, 0]])
     orientation = np.concatenate((orien_chain_1, orien_rigid_1, orien_chain_2,
@@ -156,11 +150,12 @@ if __name__=='__main__':
     snap.particles.body = body
 
     ## The number of bonds between the residues
-    print(len(position))
-    bonds_chain_1 = np.empty((0, 2), dtype=int)
-    print(f"The size of the bonds in chain 1 is :::{bonds_chain_1.shape}")
-    print(f"The length of the bonds in chain 1 is :::{len(bonds_chain_1)}")
+    # print(len(position))
+    # bonds_chain_1 = np.empty((0, 2), dtype=int)
+    # print(f"The size of the bonds in chain 1 is :::{bonds_chain_1.shape}")
+    # print(f"The length of the bonds in chain 1 is :::{len(bonds_chain_1)}")
     # exit()
+
     bonds_chain_2 = np.empty((0, 2), dtype=int)
     bonds_chain_3 = np.empty((0, 2), dtype=int)
     # for i in range(len(position[:284]) - 1):
@@ -181,13 +176,14 @@ if __name__=='__main__':
     for i in range(len(position) - 1):
         bonds = np.append(bonds, [[i, i + 1]], axis=0)
 
+    bonds = np.delete(bonds, [bonds[283], bonds[284], bonds[334], bonds[335]], axis=0)
     snap.bonds.group = bonds
     snap.bonds.N = len(bonds)
     snap.bonds.types = ['AA_bond', 'rigid_1', 'rigid_2']
 
     ## Type ID's of the polymer chain
     type_id = np.arange(0, len(position))
-    print(type_id)
+    # print(type_id)
     prot_id = np.array(prot_id)
 
     type_id[:284] = prot_id[:284]
@@ -206,9 +202,6 @@ if __name__=='__main__':
     ## Types for the rigid bodies
     type_rigid_1 = [aa_type[prot_id[i]] for i in range(284, 371)]
     type_rigid_2 = [aa_type[prot_id[i]] for i in range(421, 453)]
-    print(type_rigid_1)
-    print(type_rigid_2)
-    # exit()
 
     with gsd.hoomd.open(name='output_files/starting_config.gsd', mode='wb') as fout:
         fout.append(snap)
@@ -216,7 +209,6 @@ if __name__=='__main__':
 
     hoomd.context.initialize("")
     system = hoomd.init.read_gsd('output_files/starting_config.gsd')
-    # system.bonds.add('rigid_1', 28, 4)
     #no of chains nx=3, ny=3, nz=3=27
     # system.replicate(nx=3, ny=3, nz=3)
 
@@ -234,13 +226,13 @@ if __name__=='__main__':
 
     system.bonds.add('AA_bond', 283, 409)
     system.bonds.add('AA_bond', 495, 285)
-    system.bonds.remove(283)
-    system.bonds.remove(284)
+    # system.bonds.remove(283)
+    # system.bonds.remove(284)
     system.bonds.add('AA_bond', 334, 496)
-    system.bonds.remove(334)
-    system.bonds.remove(335)
+    # system.bonds.remove(334)
+    # system.bonds.remove(335)
     system.bonds.add('AA_bond', 336, 527)
-    system.replicate(nx=3, ny=3, nz=3)
+    # system.replicate(nx=3, ny=3, nz=3)
     ## Grouping of the particles
     all_group = hoomd.group.all()
 
