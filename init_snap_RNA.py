@@ -60,7 +60,8 @@ if __name__=='__main__':
         rna_charge.append(rna_param_dict[i][1])
         rna_sigma.append(rna_param_dict[i][2]/10.) # divide by 10 to consvert angs-> nm
         rna_lambda.append(rna_param_dict[i][3])
-
+    print(rna_type)
+    # exit()
     ## Input parameters for all amino acids
     aa_param_dict = hu.aa_stats_from_file(stat_file)
     aa_type = list(aa_param_dict.keys())
@@ -119,8 +120,15 @@ if __name__=='__main__':
         rna_pos.append((5, 0, (i - int(rna_length/2))*rna_bond_length))
         # print((i-int(polyAlength/2))*rna_bond_length)
     rna_pos = np.array(rna_pos)
-    print(f"The shape of the RNA_pos::{rna_pos.shape}")
-
+    """
+    rna_pos_2 = []
+    for i in range(rna_length):
+        rna_pos_2.append((10, 0, (i - int(rna_length/2))*rna_bond_length))
+        # print((i-int(polyAlength/2))*rna_bond_length)
+    rna_pos_2 = np.array(rna_pos_2)
+    # print(f"The shape of the RNA_pos::{rna_pos.shape}")
+    rna_pos = np.append(rna_pos_1, rna_pos_2).reshape(-1, 3)
+    """
     pos_chain_1 = prot_position_array[:284].reshape(-1, 3)
     pos_chain_2 = prot_position_array[371:421].reshape(-1, 3)
     pos_chain_3 = prot_position_array[453:].reshape(-1, 3)
@@ -139,10 +147,6 @@ if __name__=='__main__':
     # print(f"The length of the poly_bonds::{poly_bonds}")
     print("#######################")
 
-    # rna_bonds = np.empty((0, 2), dtype=int)
-    # for i in range(len(poly_bonds) - 1):
-    #     rna_bonds = np.append(rna_bonds, [[i, i+1]], axis=0)
-    # print(f"The length of rna_bonds:::{rna_bonds}")
     rna_bonds = np.empty((0, 2), dtype=int)
     for i in range(len(poly_bonds) + rna_length):
         if i >= 409:
@@ -150,7 +154,6 @@ if __name__=='__main__':
     print(f"The length of rna_bonds:::{len(rna_bonds)}")
 
     new_bonds = np.append(poly_bonds, rna_bonds).reshape(-1,2)
-    # print(new_bonds)
 
     nbonds = len(new_bonds)
 
@@ -158,16 +161,9 @@ if __name__=='__main__':
     for i in range(0, len(position)-1):
         # print('%s-%s-A' % (i, i+1))
         bond_pairs[i, :] = np.array([i, i+1])
-    # print(len(bond_pairs_prot))
-    # for cnt, i in enumerate(range(len(position),  len(new_bonds)+1)):
-    #     print('%s-%s-B' % (i, i+1))
-    #     bond_pairs[len(position)-1, :] = np.array([i, i+1])
-    # bond_pairs_rna = np.zeros((len(bond_pairs_prot), 2), dtype=int)
-    # print(bond_pairs_rna.shape)
 
     for i in range(len(position), len(new_bonds)+1):
         # print('%s-%s-B' % (i, i+1))
-        # bond_pairs_rna[len(position)-1,:] = np.array([i,i+1])
         bond_pairs[i-1,:] = np.array([i,i+1])
 
 
@@ -176,6 +172,9 @@ if __name__=='__main__':
     prot_id = np.array(prot_id)
     # print(f"The shape of the prot_id::{prot_id.shape}")
     # print(f"The shape of the type_id::{type_id.shape}")
+    print(len(rna_id[:]))
+    print(prot_id[:])
+    # exit()
     type_id[:284] = prot_id[:284]
     type_id[284] = 20
     type_id[285:285+50] = prot_id[371:421]
@@ -227,9 +226,9 @@ if __name__=='__main__':
     ## Composite body associated with each particle. Value [-1] indicates no body
     body = np.empty(0, dtype=int)
     body = np.append(body, [-1] * len(charge_chain_1) + [284] + [-1] * len(charge_chain_2)
-                        + [334] + [-1] * len(charge_chain_3) + [-2] * len(rna_charge))
+                        + [334] + [-1] * len(charge_chain_3) + [-1] * len(rna_charge))
     # print(f"The shape of the body:::{body.shape}")
-
+    # exit()
 
     ## Build a HOOMD snapshot of the system
     snap = gsd.hoomd.Snapshot()
